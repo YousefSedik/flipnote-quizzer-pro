@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, AuthState } from '../types/auth';
 import { toast } from '@/hooks/use-toast';
@@ -54,9 +53,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [authState.user]);
 
-  // Mock login functionality
   const login = async (email: string, password: string) => {
-    // This is a mock implementation, in a real app you'd make an API call
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       
@@ -100,7 +97,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // Mock register functionality
   const register = async (email: string, password: string, name?: string) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));

@@ -1,17 +1,20 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Quiz, Question } from '../types/quiz';
-import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/hooks/use-toast';
+import { api } from '@/services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface QuizContextProps {
   quizzes: Quiz[];
-  createQuiz: (title: string, description: string, isPublic?: boolean) => Quiz;
-  updateQuiz: (quiz: Quiz) => void;
-  deleteQuiz: (id: string) => void;
-  addQuestion: (quizId: string, question: Omit<Question, 'id'>) => void;
-  updateQuestion: (quizId: string, question: Question) => void;
-  deleteQuestion: (quizId: string, questionId: string) => void;
+  isLoading: boolean;
+  error: Error | null;
+  createQuiz: (title: string, description: string, isPublic?: boolean) => Promise<Quiz>;
+  updateQuiz: (quiz: Quiz) => Promise<void>;
+  deleteQuiz: (id: string) => Promise<void>;
+  addQuestion: (quizId: string, question: Omit<Question, 'id'>) => Promise<void>;
+  updateQuestion: (quizId: string, question: Question) => Promise<void>;
+  deleteQuestion: (quizId: string, questionId: string) => Promise<void>;
   getQuiz: (id: string) => Quiz | undefined;
 }
 
@@ -30,123 +33,166 @@ interface QuizProviderProps {
 }
 
 export const QuizProvider = ({ children }: QuizProviderProps) => {
-  const [quizzes, setQuizzes] = useState<Quiz[]>(() => {
-    const savedQuizzes = localStorage.getItem('quizzes');
-    if (savedQuizzes) {
-      try {
-        // Convert string dates back to Date objects
-        return JSON.parse(savedQuizzes, (key, value) => {
-          if (key === 'createdAt') {
-            return new Date(value);
-          }
-          return value;
-        });
-      } catch (error) {
-        console.error('Failed to parse quizzes from localStorage', error);
-        return [];
-      }
-    }
-    return [];
+  const queryClient = useQueryClient();
+  
+  // Fetch quizzes
+  const { 
+    data: quizzes = [], 
+    error, 
+    isLoading 
+  } = useQuery({
+    queryKey: ['quizzes'],
+    queryFn: api.quiz.getAll,
   });
 
-  // Save quizzes to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('quizzes', JSON.stringify(quizzes));
-  }, [quizzes]);
+  // Create quiz mutation
+  const createQuizMutation = useMutation({
+    mutationFn: (quizData: { title: string; description: string; isPublic: boolean }) => {
+      return api.quiz.create(quizData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      toast({
+        title: "Success",
+        description: "Quiz created successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create quiz",
+        variant: "destructive"
+      });
+    }
+  });
 
-  const createQuiz = (title: string, description: string, isPublic: boolean = false): Quiz => {
-    const newQuiz: Quiz = {
-      id: uuidv4(),
-      title,
-      description,
-      questions: [],
-      createdAt: new Date(),
-      isPublic,
-    };
-    setQuizzes((prev) => [...prev, newQuiz]);
-    toast({
-      title: "Success",
-      description: "Quiz created successfully"
-    });
-    return newQuiz;
+  // Update quiz mutation
+  const updateQuizMutation = useMutation({
+    mutationFn: (quiz: Quiz) => {
+      return api.quiz.update(quiz.id, quiz);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      toast({
+        title: "Success",
+        description: "Quiz updated successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update quiz",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete quiz mutation
+  const deleteQuizMutation = useMutation({
+    mutationFn: (id: string) => {
+      return api.quiz.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      toast({
+        title: "Success",
+        description: "Quiz deleted successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete quiz",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Add question mutation
+  const addQuestionMutation = useMutation({
+    mutationFn: ({ quizId, question }: { quizId: string; question: Omit<Question, 'id'> }) => {
+      return api.quiz.questions.create(quizId, question);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes', variables.quizId] });
+      toast({
+        title: "Success",
+        description: "Question added successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add question",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update question mutation
+  const updateQuestionMutation = useMutation({
+    mutationFn: ({ quizId, question }: { quizId: string; question: Question }) => {
+      return api.quiz.questions.update(quizId, question.id, question);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes', variables.quizId] });
+      toast({
+        title: "Success",
+        description: "Question updated successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update question",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete question mutation
+  const deleteQuestionMutation = useMutation({
+    mutationFn: ({ quizId, questionId }: { quizId: string; questionId: string }) => {
+      return api.quiz.questions.delete(quizId, questionId);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes', variables.quizId] });
+      toast({
+        title: "Success",
+        description: "Question deleted successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete question",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const createQuiz = async (title: string, description: string, isPublic: boolean = false): Promise<Quiz> => {
+    return createQuizMutation.mutateAsync({ title, description, isPublic });
   };
 
-  const updateQuiz = (updatedQuiz: Quiz) => {
-    setQuizzes((prev) =>
-      prev.map((quiz) => (quiz.id === updatedQuiz.id ? updatedQuiz : quiz))
-    );
-    toast({
-      title: "Success",
-      description: "Quiz updated successfully"
-    });
+  const updateQuiz = async (quiz: Quiz): Promise<void> => {
+    await updateQuizMutation.mutateAsync(quiz);
   };
 
-  const deleteQuiz = (id: string) => {
-    setQuizzes((prev) => prev.filter((quiz) => quiz.id !== id));
-    toast({
-      title: "Success",
-      description: "Quiz deleted successfully"
-    });
+  const deleteQuiz = async (id: string): Promise<void> => {
+    await deleteQuizMutation.mutateAsync(id);
   };
 
-  const addQuestion = (quizId: string, question: Omit<Question, 'id'>) => {
-    const newQuestion: Question = {
-      ...question,
-      id: uuidv4(),
-    };
-    setQuizzes((prev) =>
-      prev.map((quiz) => {
-        if (quiz.id === quizId) {
-          return {
-            ...quiz,
-            questions: [...quiz.questions, newQuestion],
-          };
-        }
-        return quiz;
-      })
-    );
-    toast({
-      title: "Success",
-      description: "Question added successfully"
-    });
+  const addQuestion = async (quizId: string, question: Omit<Question, 'id'>): Promise<void> => {
+    await addQuestionMutation.mutateAsync({ quizId, question });
   };
 
-  const updateQuestion = (quizId: string, updatedQuestion: Question) => {
-    setQuizzes((prev) =>
-      prev.map((quiz) => {
-        if (quiz.id === quizId) {
-          return {
-            ...quiz,
-            questions: quiz.questions.map((question) =>
-              question.id === updatedQuestion.id ? updatedQuestion : question
-            ),
-          };
-        }
-        return quiz;
-      })
-    );
-    toast({
-      title: "Success",
-      description: "Question updated successfully"
-    });
+  const updateQuestion = async (quizId: string, question: Question): Promise<void> => {
+    await updateQuestionMutation.mutateAsync({ quizId, question });
   };
 
-  const deleteQuestion = (quizId: string, questionId: string) => {
-    setQuizzes((prev) =>
-      prev.map((quiz) => {
-        if (quiz.id === quizId) {
-          return {
-            ...quiz,
-            questions: quiz.questions.filter((q) => q.id !== questionId),
-          };
-        }
-        return quiz;
-      })
-    );
-    toast({
-      title: "Success",
-      description: "Question deleted successfully"
-    });
+  const deleteQuestion = async (quizId: string, questionId: string): Promise<void> => {
+    await deleteQuestionMutation.mutateAsync({ quizId, questionId });
   };
 
   const getQuiz = (id: string) => {
@@ -157,6 +203,8 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     <QuizContext.Provider
       value={{
         quizzes,
+        isLoading,
+        error,
         createQuiz,
         updateQuiz,
         deleteQuiz,
