@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { PlusCircle, List, LogIn, UserPlus } from 'lucide-react';
+import { PlusCircle, List, LogIn, UserPlus, Share } from 'lucide-react';
 
 const Index = () => {
   const { authState } = useAuth();
@@ -22,6 +22,16 @@ const Index = () => {
             Engage learners with interactive flashcard quizzes that are fun and effective.
             Perfect for students, teachers, and anyone looking to learn something new.
           </p>
+          <div className="flex flex-wrap justify-center gap-3 max-w-lg mx-auto">
+            <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-3 w-full sm:w-auto">
+              <Share className="h-5 w-5 text-green-600 mr-2" />
+              <span>Make quizzes public or private</span>
+            </div>
+            <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-3 w-full sm:w-auto">
+              <PlusCircle className="h-5 w-5 text-blue-600 mr-2" />
+              <span>Create custom flashcards</span>
+            </div>
+          </div>
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4">
             {isAuthenticated ? (
               <>

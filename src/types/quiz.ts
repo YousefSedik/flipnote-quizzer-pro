@@ -21,4 +21,5 @@ export interface Quiz {
   description: string;
   questions: Question[];
   createdAt: Date;
+  isPublic: boolean; // New field to track public/private status
 }

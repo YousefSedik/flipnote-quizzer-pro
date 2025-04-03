@@ -5,7 +5,8 @@ import { useQuizContext } from '@/context/QuizContext';
 import FlipCard from '@/components/FlipCard';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
-import { ArrowLeft, Edit } from 'lucide-react';
+import { ArrowLeft, Edit, Link as LinkIcon, Share } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 const QuizPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,30 @@ const QuizPage: React.FC = () => {
     setShuffledQuestions([...quiz.questions].sort(() => Math.random() - 0.5));
   };
 
+  const copyLinkToClipboard = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: "Link copied",
+      description: "Quiz link copied to clipboard"
+    });
+  };
+
+  const shareQuiz = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: quiz?.title || 'Quiz',
+          text: quiz?.description || 'Check out this quiz!',
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      copyLinkToClipboard();
+    }
+  };
+
   if (!quiz) {
     return <Navigate to="/quizzes" />;
   }
@@ -40,8 +65,23 @@ const QuizPage: React.FC = () => {
               </Button>
             </Link>
             <h1 className="text-2xl font-bold">{quiz.title}</h1>
+            {quiz.isPublic && (
+              <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                Public
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
+            {quiz.isPublic && (
+              <>
+                <Button variant="outline" size="icon" onClick={copyLinkToClipboard} title="Copy Link">
+                  <LinkIcon className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={shareQuiz} title="Share Quiz">
+                  <Share className="h-4 w-4" />
+                </Button>
+              </>
+            )}
             <Button variant="outline" onClick={shuffleQuestions}>
               Shuffle
             </Button>

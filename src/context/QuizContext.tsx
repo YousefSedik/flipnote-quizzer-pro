@@ -6,7 +6,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface QuizContextProps {
   quizzes: Quiz[];
-  createQuiz: (title: string, description: string) => Quiz;
+  createQuiz: (title: string, description: string, isPublic?: boolean) => Quiz;
   updateQuiz: (quiz: Quiz) => void;
   deleteQuiz: (id: string) => void;
   addQuestion: (quizId: string, question: Omit<Question, 'id'>) => void;
@@ -54,13 +54,14 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     localStorage.setItem('quizzes', JSON.stringify(quizzes));
   }, [quizzes]);
 
-  const createQuiz = (title: string, description: string): Quiz => {
+  const createQuiz = (title: string, description: string, isPublic: boolean = false): Quiz => {
     const newQuiz: Quiz = {
       id: uuidv4(),
       title,
       description,
       questions: [],
       createdAt: new Date(),
+      isPublic,
     };
     setQuizzes((prev) => [...prev, newQuiz]);
     toast({

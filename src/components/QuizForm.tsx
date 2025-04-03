@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useQuizContext } from '@/context/QuizContext';
 import { useNavigate } from 'react-router-dom';
 import { Quiz } from '@/types/quiz';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface QuizFormProps {
   quiz?: Quiz;
@@ -14,6 +16,7 @@ interface QuizFormProps {
 const QuizForm: React.FC<QuizFormProps> = ({ quiz }) => {
   const [title, setTitle] = useState(quiz?.title || '');
   const [description, setDescription] = useState(quiz?.description || '');
+  const [isPublic, setIsPublic] = useState(quiz?.isPublic || false);
   const { createQuiz, updateQuiz } = useQuizContext();
   const navigate = useNavigate();
 
@@ -29,11 +32,12 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz }) => {
         ...quiz,
         title,
         description,
+        isPublic,
       };
       updateQuiz(updatedQuiz);
       navigate(`/quiz/${quiz.id}`);
     } else {
-      const newQuiz = createQuiz(title, description);
+      const newQuiz = createQuiz(title, description, isPublic);
       navigate(`/quiz/${newQuiz.id}`);
     }
   };
@@ -64,7 +68,15 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz }) => {
           rows={4}
         />
       </div>
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="public-mode"
+            checked={isPublic}
+            onCheckedChange={setIsPublic}
+          />
+          <Label htmlFor="public-mode">Make quiz public</Label>
+        </div>
         <Button type="submit">
           {quiz ? 'Update Quiz' : 'Create Quiz'}
         </Button>
