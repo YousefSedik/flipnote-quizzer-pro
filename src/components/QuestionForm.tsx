@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +9,7 @@ import { useQuizContext } from '@/context/QuizContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, Trash2, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/hooks/use-toast';
 
 interface QuestionFormProps {
   quizId: string;

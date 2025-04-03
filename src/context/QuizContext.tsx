@@ -1,8 +1,7 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Quiz, Question, QuestionType, Option } from '../types/quiz';
 import { v4 as uuidv4 } from 'uuid';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/hooks/use-toast';
 
 interface QuizContextProps {
   quizzes: Quiz[];
