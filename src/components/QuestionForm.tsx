@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,30 +35,50 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
     e.preventDefault();
     
     if (!questionText.trim()) {
-      toast.error('Please enter a question');
+      toast({
+        title: "Error",
+        description: "Please enter a question",
+        variant: "destructive"
+      });
       return;
     }
 
     if (questionType === 'mcq') {
       // Check if at least 2 options
       if (options.length < 2) {
-        toast.error('Please add at least 2 options');
+        toast({
+          title: "Error",
+          description: "Please add at least 2 options",
+          variant: "destructive"
+        });
         return;
       }
       
       // Check if any empty options
       if (options.some(option => !option.text.trim())) {
-        toast.error('Please fill in all options');
+        toast({
+          title: "Error",
+          description: "Please fill in all options",
+          variant: "destructive"
+        });
         return;
       }
       
       // Check if at least one correct answer
       if (!options.some(option => option.isCorrect)) {
-        toast.error('Please select at least one correct answer');
+        toast({
+          title: "Error",
+          description: "Please select at least one correct answer",
+          variant: "destructive"
+        });
         return;
       }
     } else if (!answer.trim()) {
-      toast.error('Please provide an answer');
+      toast({
+        title: "Error",
+        description: "Please provide an answer",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -91,7 +112,11 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
 
   const removeOption = (id: string) => {
     if (options.length <= 2) {
-      toast.error('You need at least 2 options');
+      toast({
+        title: "Error",
+        description: "You need at least 2 options",
+        variant: "destructive"
+      });
       return;
     }
     setOptions(options.filter(option => option.id !== id));

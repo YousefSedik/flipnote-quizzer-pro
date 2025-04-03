@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Quiz, Question, QuestionType, Option } from '../types/quiz';
 import { v4 as uuidv4 } from 'uuid';
@@ -62,7 +63,10 @@ export const QuizProvider: React.FC<QuizProviderProps> = ({ children }) => {
       createdAt: new Date(),
     };
     setQuizzes((prev) => [...prev, newQuiz]);
-    toast.success('Quiz created successfully');
+    toast({
+      title: "Success",
+      description: "Quiz created successfully"
+    });
     return newQuiz;
   };
 
@@ -70,12 +74,18 @@ export const QuizProvider: React.FC<QuizProviderProps> = ({ children }) => {
     setQuizzes((prev) =>
       prev.map((quiz) => (quiz.id === updatedQuiz.id ? updatedQuiz : quiz))
     );
-    toast.success('Quiz updated successfully');
+    toast({
+      title: "Success",
+      description: "Quiz updated successfully"
+    });
   };
 
   const deleteQuiz = (id: string) => {
     setQuizzes((prev) => prev.filter((quiz) => quiz.id !== id));
-    toast.success('Quiz deleted successfully');
+    toast({
+      title: "Success",
+      description: "Quiz deleted successfully"
+    });
   };
 
   const addQuestion = (quizId: string, question: Omit<Question, 'id'>) => {
@@ -94,7 +104,10 @@ export const QuizProvider: React.FC<QuizProviderProps> = ({ children }) => {
         return quiz;
       })
     );
-    toast.success('Question added successfully');
+    toast({
+      title: "Success",
+      description: "Question added successfully"
+    });
   };
 
   const updateQuestion = (quizId: string, updatedQuestion: Question) => {
@@ -111,7 +124,10 @@ export const QuizProvider: React.FC<QuizProviderProps> = ({ children }) => {
         return quiz;
       })
     );
-    toast.success('Question updated successfully');
+    toast({
+      title: "Success",
+      description: "Question updated successfully"
+    });
   };
 
   const deleteQuestion = (quizId: string, questionId: string) => {
@@ -126,7 +142,10 @@ export const QuizProvider: React.FC<QuizProviderProps> = ({ children }) => {
         return quiz;
       })
     );
-    toast.success('Question deleted successfully');
+    toast({
+      title: "Success",
+      description: "Question deleted successfully"
+    });
   };
 
   const getQuiz = (id: string) => {
