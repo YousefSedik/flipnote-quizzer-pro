@@ -1,6 +1,6 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Quiz, Question, QuestionType, Option } from '../types/quiz';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { Quiz, Question } from '../types/quiz';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/hooks/use-toast';
 
@@ -29,7 +29,7 @@ interface QuizProviderProps {
   children: ReactNode;
 }
 
-export const QuizProvider: React.FC<QuizProviderProps> = ({ children }) => {
+export const QuizProvider = ({ children }: QuizProviderProps) => {
   const [quizzes, setQuizzes] = useState<Quiz[]>(() => {
     const savedQuizzes = localStorage.getItem('quizzes');
     if (savedQuizzes) {
@@ -50,7 +50,7 @@ export const QuizProvider: React.FC<QuizProviderProps> = ({ children }) => {
   });
 
   // Save quizzes to localStorage whenever they change
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('quizzes', JSON.stringify(quizzes));
   }, [quizzes]);
 
