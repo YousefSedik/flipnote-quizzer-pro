@@ -10,6 +10,7 @@ interface AuthContextProps {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
+  refreshToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -27,6 +28,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>(() => {
     const savedAuth = localStorage.getItem('auth');
     if (savedAuth) {
@@ -61,29 +63,42 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [authState.user, authState.isAuthenticated, authState.tokens]);
 
+  // Refresh token function
+  const refreshToken = useCallback(async (): Promise<string | null> => {
+    if (!authState.tokens?.refresh) return null;
+    
+    try {
+      const response = await api.auth.refreshToken(authState.tokens.refresh);
+      const newAccessToken = response.access;
+      
+      setAuthState(prev => ({
+        ...prev,
+        tokens: {
+          access: newAccessToken,
+          refresh: prev.tokens?.refresh || '',
+        }
+      }));
+      
+      return newAccessToken;
+    } catch (error) {
+      console.error('Token refresh failed', error);
+      // If token refresh fails, log the user out
+      logout();
+      return null;
+    }
+  }, [authState.tokens?.refresh]);
+
   // Setup token refresh interval
   useEffect(() => {
     if (authState.tokens?.refresh) {
+      // Refresh token every 14 minutes (tokens typically last 15 minutes)
       const refreshTokenInterval = setInterval(async () => {
-        try {
-          const response = await api.auth.refreshToken(authState.tokens!.refresh);
-          setAuthState(prev => ({
-            ...prev,
-            tokens: {
-              access: response.access,
-              refresh: prev.tokens?.refresh || '',
-            }
-          }));
-        } catch (error) {
-          console.error('Token refresh failed', error);
-          // If token refresh fails, log the user out
-          logout();
-        }
-      }, 1000 * 60 * 15); // Refresh token every 15 minutes
+        await refreshToken();
+      }, 1000 * 60 * 14);
 
       return () => clearInterval(refreshTokenInterval);
     }
-  }, [authState.tokens?.refresh]);
+  }, [authState.tokens?.refresh, refreshToken]);
 
   // Load user profile if we have an access token but no user data
   useEffect(() => {
@@ -158,6 +173,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description: "You've successfully logged in",
       });
       
+      // Navigate to quizzes page after successful login
+      navigate('/quizzes');
+      
       return Promise.resolve();
       
     } catch (error) {
@@ -216,6 +234,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         login,
         register,
         logout,
+        refreshToken,
       }}
     >
       {children}

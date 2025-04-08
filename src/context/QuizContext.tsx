@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Quiz, Question, PaginationParams } from '../types/quiz';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
@@ -36,7 +37,7 @@ interface QuizProviderProps {
 
 export const QuizProvider = ({ children }: QuizProviderProps) => {
   const queryClient = useQueryClient();
-  const { authState } = useAuth();
+  const { authState, refreshToken } = useAuth();
   const [page, setPage] = useState(1);
   const pageSize = 10;
   
@@ -44,12 +45,28 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   const { 
     data: quizzesData, 
     error, 
-    isLoading 
+    isLoading,
+    refetch
   } = useQuery({
     queryKey: ['quizzes', page, pageSize],
     queryFn: () => api.quiz.getAll(page, pageSize),
     enabled: !!authState.isAuthenticated && !!authState.tokens?.access,
+    retry: async (failureCount, error) => {
+      // If we get a 401 error, try refreshing the token
+      if (failureCount < 2 && error instanceof Error && error.message.includes('401')) {
+        const newToken = await refreshToken();
+        return !!newToken; // retry if we got a new token
+      }
+      return failureCount < 2; // otherwise standard retry logic
+    },
   });
+
+  // Refetch quizzes when auth state changes
+  useEffect(() => {
+    if (authState.isAuthenticated && authState.tokens?.access) {
+      refetch();
+    }
+  }, [authState.isAuthenticated, authState.tokens?.access, refetch]);
 
   const quizzes = quizzesData?.results || [];
   const totalItems = quizzesData?.count || 0;
@@ -62,10 +79,19 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     totalPages,
   };
 
-  // Create quiz mutation
+  // Create quiz mutation with token refresh handling
   const createQuizMutation = useMutation({
-    mutationFn: (quizData: { title: string; description: string; isPublic: boolean }) => {
-      return api.quiz.create(quizData);
+    mutationFn: async (quizData: { title: string; description: string; isPublic: boolean }) => {
+      try {
+        return await api.quiz.create(quizData);
+      } catch (error) {
+        // If it's an auth error, try refreshing token and retry
+        if (error instanceof Error && error.message.includes('401')) {
+          await refreshToken();
+          return api.quiz.create(quizData);
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
