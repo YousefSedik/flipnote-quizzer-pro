@@ -1,19 +1,38 @@
-
 import { Quiz, Question } from '@/types/quiz';
+import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
 const API_URL = 'http://localhost:8000';
+
+// Helper function to get the access token from localStorage
+const getAccessToken = () => {
+  const authData = localStorage.getItem('auth');
+  if (authData) {
+    try {
+      const { tokens } = JSON.parse(authData);
+      return tokens?.access;
+    } catch (error) {
+      console.error('Failed to parse auth data from localStorage', error);
+    }
+  }
+  return null;
+};
+
+// Helper function to add auth headers to requests
+const authHeaders = () => {
+  const token = getAccessToken();
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
 
 export const api = {
   // Auth endpoints
   auth: {
-    login: async (email: string, password: string) => {
-      const response = await fetch(`${API_URL}/auth/login`, {
+    login: async (email: string, password: string): Promise<LoginResponse> => {
+      const response = await fetch(`${API_URL}/auth/login/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -25,13 +44,17 @@ export const api = {
     },
     
     register: async (name: string, email: string, password: string) => {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      const response = await fetch(`${API_URL}/auth/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password }),
-        credentials: 'include',
+        body: JSON.stringify({ 
+          email, 
+          password,
+          first_name: name || '',
+          last_name: ''
+        }),
       });
       
       if (!response.ok) {
@@ -42,27 +65,32 @@ export const api = {
       return response.json();
     },
     
-    logout: async () => {
-      const response = await fetch(`${API_URL}/auth/logout`, {
+    refreshToken: async (refresh: string): Promise<RefreshResponse> => {
+      const response = await fetch(`${API_URL}/auth/token/refresh/`, {
         method: 'POST',
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh }),
       });
       
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Logout failed');
+        throw new Error('Failed to refresh token');
       }
       
       return response.json();
     },
     
-    me: async () => {
-      const response = await fetch(`${API_URL}/auth/me`, {
-        credentials: 'include',
+    getProfile: async (): Promise<ProfileResponse> => {
+      const response = await fetch(`${API_URL}/auth/profile/`, {
+        headers: {
+          ...authHeaders(),
+          'Content-Type': 'application/json',
+        },
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch user data');
+        throw new Error('Failed to fetch user profile');
       }
       
       return response.json();
@@ -73,7 +101,7 @@ export const api = {
   quiz: {
     getAll: async () => {
       const response = await fetch(`${API_URL}/quizzes`, {
-        credentials: 'include',
+        headers: authHeaders(),
       });
       
       if (!response.ok) {
@@ -85,7 +113,7 @@ export const api = {
     
     getOne: async (id: string) => {
       const response = await fetch(`${API_URL}/quizzes/${id}`, {
-        credentials: 'include',
+        headers: authHeaders(),
       });
       
       if (!response.ok) {
@@ -100,9 +128,9 @@ export const api = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders(),
         },
         body: JSON.stringify(quiz),
-        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -117,9 +145,9 @@ export const api = {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders(),
         },
         body: JSON.stringify(quiz),
-        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -132,7 +160,7 @@ export const api = {
     delete: async (id: string) => {
       const response = await fetch(`${API_URL}/quizzes/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
+        headers: authHeaders(),
       });
       
       if (!response.ok) {
@@ -149,9 +177,9 @@ export const api = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...authHeaders(),
           },
           body: JSON.stringify(question),
-          credentials: 'include',
         });
         
         if (!response.ok) {
@@ -166,9 +194,9 @@ export const api = {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            ...authHeaders(),
           },
           body: JSON.stringify(question),
-          credentials: 'include',
         });
         
         if (!response.ok) {
@@ -181,7 +209,7 @@ export const api = {
       delete: async (quizId: string, questionId: string) => {
         const response = await fetch(`${API_URL}/quizzes/${quizId}/questions/${questionId}`, {
           method: 'DELETE',
-          credentials: 'include',
+          headers: authHeaders(),
         });
         
         if (!response.ok) {

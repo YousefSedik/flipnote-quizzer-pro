@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { User, AuthState } from '../types/auth';
+
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { User, AuthState, ProfileResponse } from '../types/auth';
 import { toast } from '@/hooks/use-toast';
+import { api } from '@/services/api';
 
 interface AuthContextProps {
   authState: AuthState;
@@ -25,62 +27,117 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authState, setAuthState] = useState<AuthState>(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
+    const savedAuth = localStorage.getItem('auth');
+    if (savedAuth) {
       try {
-        const user = JSON.parse(savedUser);
+        const parsedAuth = JSON.parse(savedAuth);
         return {
-          user,
-          isAuthenticated: true,
+          ...parsedAuth,
           isLoading: false,
         };
       } catch (error) {
-        console.error('Failed to parse user from localStorage', error);
+        console.error('Failed to parse auth from localStorage', error);
       }
     }
     return {
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      tokens: undefined,
     };
   });
 
+  // Update localStorage when authState changes
   useEffect(() => {
-    if (authState.user) {
-      localStorage.setItem('user', JSON.stringify(authState.user));
+    if (authState.user && authState.tokens) {
+      localStorage.setItem('auth', JSON.stringify({
+        user: authState.user,
+        isAuthenticated: authState.isAuthenticated,
+        tokens: authState.tokens,
+      }));
     } else {
-      localStorage.removeItem('user');
+      localStorage.removeItem('auth');
     }
-  }, [authState.user]);
+  }, [authState.user, authState.isAuthenticated, authState.tokens]);
+
+  // Setup token refresh interval
+  useEffect(() => {
+    if (authState.tokens?.refresh) {
+      const refreshTokenInterval = setInterval(async () => {
+        try {
+          const response = await api.auth.refreshToken(authState.tokens!.refresh);
+          setAuthState(prev => ({
+            ...prev,
+            tokens: {
+              access: response.access,
+              refresh: prev.tokens?.refresh || '',
+            }
+          }));
+        } catch (error) {
+          console.error('Token refresh failed', error);
+          // If token refresh fails, log the user out
+          logout();
+        }
+      }, 1000 * 60 * 15); // Refresh token every 15 minutes
+
+      return () => clearInterval(refreshTokenInterval);
+    }
+  }, [authState.tokens?.refresh]);
+
+  // Load user profile if we have an access token but no user data
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (authState.tokens?.access && !authState.user) {
+        try {
+          setAuthState(prev => ({ ...prev, isLoading: true }));
+          const profile = await api.auth.getProfile();
+          
+          // Create user object from profile data
+          const user: User = {
+            email: profile.email,
+            name: profile.first_name || profile.email.split('@')[0],
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+          };
+          
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            tokens: authState.tokens,
+          });
+        } catch (error) {
+          console.error('Failed to load user profile', error);
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            tokens: undefined,
+          });
+        }
+      }
+    };
+    
+    loadUserProfile();
+  }, [authState.tokens?.access]);
 
   const login = async (email: string, password: string) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       
-      // Simulate API call delay
-      await new Promise(r => setTimeout(r, 1000));
+      // Get tokens from login endpoint
+      const tokenResponse = await api.auth.login(email, password);
       
-      // Simple validation - in a real app this would be server-side
-      if (!email || !password) {
-        throw new Error('Email and password are required');
-      }
+      // Get user profile
+      setAuthState(prev => ({ 
+        ...prev, 
+        tokens: {
+          access: tokenResponse.access,
+          refresh: tokenResponse.refresh
+        }
+      }));
       
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
-      
-      // Create mock user - in a real app this would come from your API
-      const user: User = {
-        id: crypto.randomUUID(),
-        email,
-        name: email.split('@')[0],
-      };
-      
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      // The user profile will be loaded by the useEffect above
       
       toast({
         title: "Success",
@@ -101,30 +158,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       
-      // Simulate API call delay
-      await new Promise(r => setTimeout(r, 1000));
+      // Call register endpoint
+      await api.auth.register(name || '', email, password);
       
-      // Simple validation - in a real app this would be server-side
-      if (!email || !password) {
-        throw new Error('Email and password are required');
-      }
-      
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
-      
-      // Create mock user - in a real app this would come from your API
-      const user: User = {
-        id: crypto.randomUUID(),
-        email,
-        name: name || email.split('@')[0],
-      };
-      
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      // After registration, login the user to get tokens
+      await login(email, password);
       
       toast({
         title: "Success",
@@ -141,17 +179,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setAuthState({
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      tokens: undefined,
     });
     toast({
       title: "Logged out",
       description: "You've been logged out successfully",
     });
-  };
+  }, []);
 
   return (
     <AuthContext.Provider
