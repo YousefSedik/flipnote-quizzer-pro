@@ -1,4 +1,3 @@
-
 import { Quiz, Question } from '@/types/quiz';
 import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
@@ -23,6 +22,13 @@ const authHeaders = (customToken?: string) => {
   const token = customToken || getAccessToken();
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
 
 export const api = {
   // Auth endpoints
@@ -100,8 +106,8 @@ export const api = {
   
   // Quiz endpoints
   quiz: {
-    getAll: async () => {
-      const response = await fetch(`${API_URL}/quizzes`, {
+    getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Quiz>> => {
+      const response = await fetch(`${API_URL}/quizzes/?page=${page}&page_size=${pageSize}`, {
         headers: authHeaders(),
       });
       
@@ -109,7 +115,21 @@ export const api = {
         throw new Error('Failed to fetch quizzes');
       }
       
-      return response.json();
+      const data = await response.json();
+      return {
+        count: data.count,
+        next: data.next,
+        previous: data.previous,
+        results: data.results.map((quiz: any) => ({
+          id: quiz.id,
+          title: quiz.title,
+          description: quiz.description,
+          createdAt: quiz.created_at,
+          isPublic: quiz.is_public,
+          questions: [], // Questions are loaded separately
+          ownerUsername: quiz.owner_username,
+        })),
+      };
     },
     
     getOne: async (id: string) => {
@@ -121,7 +141,49 @@ export const api = {
         throw new Error('Failed to fetch quiz');
       }
       
-      return response.json();
+      const quiz = await response.json();
+      
+      // Fetch questions for this quiz
+      const questionsResponse = await fetch(`${API_URL}/quizzes/${id}/questions`, {
+        headers: authHeaders(),
+      });
+      
+      if (!questionsResponse.ok) {
+        throw new Error('Failed to fetch quiz questions');
+      }
+      
+      const questionsData = await questionsResponse.json();
+      
+      // Combine MCQ and written questions
+      const questions = [
+        ...(questionsData.mcq_questions || []).map((q: any) => ({
+          id: q.id.toString(),
+          text: q.text,
+          type: 'mcq' as const,
+          answer: q.correct_answer,
+          options: q.choices.split('|').map((choice: string, index: number) => ({
+            id: index.toString(),
+            text: choice,
+            isCorrect: choice === q.correct_answer,
+          })),
+        })),
+        ...(questionsData.written_questions || []).map((q: any) => ({
+          id: q.id.toString(),
+          text: q.text,
+          type: 'written' as const,
+          answer: q.answer,
+        })),
+      ];
+      
+      return {
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description,
+        createdAt: quiz.created_at,
+        isPublic: quiz.is_public,
+        questions,
+        ownerUsername: quiz.owner_username,
+      };
     },
     
     create: async (quiz: Omit<Quiz, 'id' | 'createdAt' | 'questions'>) => {
@@ -223,14 +285,28 @@ export const api = {
     
     // Public quizzes
     public: {
-      getAll: async () => {
-        const response = await fetch(`${API_URL}/quizzes/public`);
+      getAll: async (page = 1, pageSize = 6): Promise<PaginatedResponse<Quiz>> => {
+        const response = await fetch(`${API_URL}/quizzes/public?page=${page}&page_size=${pageSize}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch public quizzes');
         }
         
-        return response.json();
+        const data = await response.json();
+        return {
+          count: data.count,
+          next: data.next,
+          previous: data.previous,
+          results: data.results.map((quiz: any) => ({
+            id: quiz.id,
+            title: quiz.title,
+            description: quiz.description,
+            createdAt: quiz.created_at,
+            isPublic: quiz.is_public,
+            questions: [], // Questions are loaded separately
+            ownerUsername: quiz.owner_username,
+          })),
+        };
       },
       
       getOne: async (id: string) => {

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Quiz, Question } from '../types/quiz';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { Quiz, Question, PaginationParams } from '../types/quiz';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,8 @@ interface QuizContextProps {
   updateQuestion: (quizId: string, question: Question) => Promise<void>;
   deleteQuestion: (quizId: string, questionId: string) => Promise<void>;
   getQuiz: (id: string) => Quiz | undefined;
+  paginationParams: PaginationParams;
+  setPage: (page: number) => void;
 }
 
 const QuizContext = createContext<QuizContextProps | undefined>(undefined);
@@ -35,17 +37,30 @@ interface QuizProviderProps {
 export const QuizProvider = ({ children }: QuizProviderProps) => {
   const queryClient = useQueryClient();
   const { authState } = useAuth();
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   
   // Fetch quizzes only when authenticated
   const { 
-    data: quizzes = [], 
+    data: quizzesData, 
     error, 
     isLoading 
   } = useQuery({
-    queryKey: ['quizzes'],
-    queryFn: api.quiz.getAll,
+    queryKey: ['quizzes', page, pageSize],
+    queryFn: () => api.quiz.getAll(page, pageSize),
     enabled: !!authState.isAuthenticated && !!authState.tokens?.access,
   });
+
+  const quizzes = quizzesData?.results || [];
+  const totalItems = quizzesData?.count || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  const paginationParams: PaginationParams = {
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
+  };
 
   // Create quiz mutation
   const createQuizMutation = useMutation({
@@ -214,6 +229,8 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         updateQuestion,
         deleteQuestion,
         getQuiz,
+        paginationParams,
+        setPage,
       }}
     >
       {children}

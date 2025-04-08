@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -8,18 +8,38 @@ import { PlusCircle, List, LogIn, UserPlus, Share, BookOpen } from 'lucide-react
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import QuizCard from '@/components/QuizCard';
+import QuizPagination from '@/components/QuizPagination';
+import { PaginationParams } from '@/types/quiz';
 
 const Index = () => {
   const { authState } = useAuth();
   const isAuthenticated = authState.isAuthenticated;
+  const [page, setPage] = useState(1);
+  const pageSize = 6; // Number of quizzes per page
 
-  const { data: publicQuizzes = [], isLoading } = useQuery({
-    queryKey: ['publicQuizzes'],
-    queryFn: api.quiz.public.getAll,
+  const { data: publicQuizzesData, isLoading } = useQuery({
+    queryKey: ['publicQuizzes', page, pageSize],
+    queryFn: () => api.quiz.public.getAll(page, pageSize),
     // Only fetch if API is available, avoiding unnecessary API calls during development
     retry: 1,
     retryDelay: 1000,
   });
+
+  const publicQuizzes = publicQuizzesData?.results || [];
+  const totalItems = publicQuizzesData?.count || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  const pagination: PaginationParams = {
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -87,12 +107,24 @@ const Index = () => {
                 <BookOpen className="h-6 w-6" />
                 Public Quizzes
               </h2>
+              {totalItems > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Showing {publicQuizzes.length} of {totalItems} quizzes
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {publicQuizzes.slice(0, 6).map((quiz) => (
+              {publicQuizzes.map((quiz) => (
                 <QuizCard key={quiz.id} quiz={quiz} />
               ))}
             </div>
+            
+            {totalPages > 1 && (
+              <QuizPagination 
+                pagination={pagination}
+                onPageChange={handlePageChange}
+              />
+            )}
           </section>
         )}
       </main>

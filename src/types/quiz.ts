@@ -20,6 +20,14 @@ export interface Quiz {
   title: string;
   description: string;
   questions: Question[];
-  createdAt: Date;
-  isPublic: boolean; // New field to track public/private status
+  createdAt: Date | string;
+  isPublic: boolean;
+  ownerUsername?: string;
+}
+
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
 }

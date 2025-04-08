@@ -1,15 +1,40 @@
 
-import React from 'react';
-import { useQuizContext } from '@/context/QuizContext';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/services/api';
 import QuizCard from '@/components/QuizCard';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import QuizPagination from '@/components/QuizPagination';
+import { PaginationParams } from '@/types/quiz';
 
 const QuizzesPage: React.FC = () => {
-  const { quizzes, isLoading, error } = useQuizContext();
+  const [page, setPage] = useState(1);
+  const pageSize = 9; // Number of quizzes per page
+
+  const { data: quizzesData, isLoading, error } = useQuery({
+    queryKey: ['quizzes', page, pageSize],
+    queryFn: () => api.quiz.getAll(page, pageSize),
+  });
+
+  const quizzes = quizzesData?.results || [];
+  const totalItems = quizzesData?.count || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  const pagination: PaginationParams = {
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const renderContent = () => {
     if (isLoading) {
@@ -49,11 +74,20 @@ const QuizzesPage: React.FC = () => {
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {quizzes.map((quiz) => (
-          <QuizCard key={quiz.id} quiz={quiz} />
-        ))}
-      </div>
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quizzes.map((quiz) => (
+            <QuizCard key={quiz.id} quiz={quiz} />
+          ))}
+        </div>
+        
+        {totalPages > 1 && (
+          <QuizPagination 
+            pagination={pagination}
+            onPageChange={handlePageChange}
+          />
+        )}
+      </>
     );
   };
 
@@ -62,7 +96,14 @@ const QuizzesPage: React.FC = () => {
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6 flex-col sm:flex-row gap-4">
-          <h1 className="text-2xl font-bold">My Quizzes</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">My Quizzes</h1>
+            {totalItems > 0 && (
+              <span className="text-sm text-muted-foreground">
+                ({totalItems} total)
+              </span>
+            )}
+          </div>
           <Link to="/create">
             <Button className="w-full sm:w-auto">
               <PlusCircle className="mr-2 h-4 w-4" />
