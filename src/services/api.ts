@@ -1,3 +1,4 @@
+
 import { Quiz, Question } from '@/types/quiz';
 import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
@@ -18,8 +19,8 @@ const getAccessToken = () => {
 };
 
 // Helper function to add auth headers to requests
-const authHeaders = () => {
-  const token = getAccessToken();
+const authHeaders = (customToken?: string) => {
+  const token = customToken || getAccessToken();
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
@@ -81,10 +82,10 @@ export const api = {
       return response.json();
     },
     
-    getProfile: async (): Promise<ProfileResponse> => {
+    getProfile: async (tokens?: { access: string, refresh: string }): Promise<ProfileResponse> => {
       const response = await fetch(`${API_URL}/auth/profile/`, {
         headers: {
-          ...authHeaders(),
+          ...authHeaders(tokens?.access),
           'Content-Type': 'application/json',
         },
       });

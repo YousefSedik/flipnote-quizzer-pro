@@ -13,10 +13,12 @@ const Index = () => {
   const { authState } = useAuth();
   const isAuthenticated = authState.isAuthenticated;
 
-  const { data: publicQuizzes = [] } = useQuery({
+  const { data: publicQuizzes = [], isLoading } = useQuery({
     queryKey: ['publicQuizzes'],
     queryFn: api.quiz.public.getAll,
-    enabled: true,
+    // Only fetch if API is available, avoiding unnecessary API calls during development
+    retry: 1,
+    retryDelay: 1000,
   });
 
   return (
@@ -78,7 +80,7 @@ const Index = () => {
           </div>
         </section>
 
-        {publicQuizzes.length > 0 && (
+        {!isLoading && publicQuizzes.length > 0 && (
           <section className="py-12">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold flex items-center gap-2">

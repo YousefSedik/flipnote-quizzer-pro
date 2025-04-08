@@ -1,9 +1,9 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Quiz, Question } from '../types/quiz';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from './AuthContext';
 
 interface QuizContextProps {
   quizzes: Quiz[];
@@ -34,8 +34,9 @@ interface QuizProviderProps {
 
 export const QuizProvider = ({ children }: QuizProviderProps) => {
   const queryClient = useQueryClient();
+  const { authState } = useAuth();
   
-  // Fetch quizzes
+  // Fetch quizzes only when authenticated
   const { 
     data: quizzes = [], 
     error, 
@@ -43,6 +44,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   } = useQuery({
     queryKey: ['quizzes'],
     queryFn: api.quiz.getAll,
+    enabled: !!authState.isAuthenticated && !!authState.tokens?.access,
   });
 
   // Create quiz mutation

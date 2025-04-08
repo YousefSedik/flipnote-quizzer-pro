@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { User, AuthState, ProfileResponse } from '../types/auth';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextProps {
   authState: AuthState;
@@ -129,20 +130,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const tokenResponse = await api.auth.login(email, password);
       
       // Get user profile
-      setAuthState(prev => ({ 
-        ...prev, 
+      const profile = await api.auth.getProfile({
+        access: tokenResponse.access,
+        refresh: tokenResponse.refresh
+      });
+      
+      // Create user object from profile data
+      const user: User = {
+        email: profile.email,
+        name: profile.first_name || profile.email.split('@')[0],
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+      };
+      
+      setAuthState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
         tokens: {
           access: tokenResponse.access,
           refresh: tokenResponse.refresh
         }
-      }));
-      
-      // The user profile will be loaded by the useEffect above
+      });
       
       toast({
         title: "Success",
         description: "You've successfully logged in",
       });
+      
+      return Promise.resolve();
       
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -151,6 +167,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description: error instanceof Error ? error.message : "Failed to login",
         variant: "destructive",
       });
+      return Promise.reject(error);
     }
   };
 

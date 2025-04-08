@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -22,6 +22,7 @@ type LoginValues = z.infer<typeof loginSchema>;
 const LoginPage: React.FC = () => {
   const { login, authState } = useAuth();
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -32,14 +33,22 @@ const LoginPage: React.FC = () => {
   });
 
   const onSubmit = async (values: LoginValues) => {
-    await login(values.email, values.password);
+    setIsSubmitting(true);
+    try {
+      await login(values.email, values.password);
+      navigate('/quizzes');
+    } catch (error) {
+      console.error('Login failed:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   React.useEffect(() => {
-    if (authState.isAuthenticated) {
+    if (authState.isAuthenticated && !authState.isLoading) {
       navigate('/quizzes');
     }
-  }, [authState.isAuthenticated, navigate]);
+  }, [authState.isAuthenticated, authState.isLoading, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -85,9 +94,9 @@ const LoginPage: React.FC = () => {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={authState.isLoading}>
+                <Button type="submit" className="w-full" disabled={isSubmitting || authState.isLoading}>
                   <LogIn className="mr-2 h-4 w-4" />
-                  {authState.isLoading ? 'Logging in...' : 'Log In'}
+                  {isSubmitting || authState.isLoading ? 'Logging in...' : 'Log In'}
                 </Button>
               </form>
             </Form>
