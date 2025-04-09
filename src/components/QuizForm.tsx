@@ -21,7 +21,7 @@ interface QuizFormProps {
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  isPublic: z.boolean().default(false),
+  is_public: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -36,7 +36,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz }) => {
     defaultValues: {
       title: quiz?.title || '',
       description: quiz?.description || '',
-      isPublic: quiz?.isPublic || false,
+      is_public: quiz?.is_public || false,
     },
   });
 
@@ -48,12 +48,12 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz }) => {
           ...quiz,
           title: values.title,
           description: values.description,
-          isPublic: values.isPublic,
+          is_public: values.is_public,
         };
         await updateQuiz(updatedQuiz);
         navigate(`/quiz/${quiz.id}`);
       } else {
-        const newQuiz = await createQuiz(values.title, values.description, values.isPublic);
+        const newQuiz = await createQuiz(values.title, values.description, values.is_public);
         navigate(`/quiz/${newQuiz.id}`);
       }
     } catch (error) {
@@ -102,7 +102,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz }) => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <FormField
             control={form.control}
-            name="isPublic"
+            name="is_public"
             render={({ field }) => (
               <FormItem className="flex flex-row items-center gap-2 space-y-0">
                 <FormControl>

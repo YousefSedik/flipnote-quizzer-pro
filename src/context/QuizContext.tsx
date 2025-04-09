@@ -10,7 +10,7 @@ interface QuizContextProps {
   quizzes: Quiz[];
   isLoading: boolean;
   error: Error | null;
-  createQuiz: (title: string, description: string, isPublic?: boolean) => Promise<Quiz>;
+  createQuiz: (title: string, description: string, is_public?: boolean) => Promise<Quiz>;
   updateQuiz: (quiz: Quiz) => Promise<void>;
   deleteQuiz: (id: string) => Promise<void>;
   addQuestion: (quizId: string, question: Omit<Question, 'id'>) => Promise<void>;
@@ -98,7 +98,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
 
   // Create quiz mutation with token refresh handling
   const createQuizMutation = useMutation({
-    mutationFn: async (quizData: { title: string; description: string; isPublic: boolean }) => {
+    mutationFn: async (quizData: { title: string; description: string; is_public: boolean }) => {
       try {
         return await api.quiz.create(quizData);
       } catch (error) {
@@ -231,8 +231,8 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     }
   });
 
-  const createQuiz = async (title: string, description: string, isPublic: boolean = false): Promise<Quiz> => {
-    return createQuizMutation.mutateAsync({ title, description, isPublic });
+  const createQuiz = async (title: string, description: string, is_public: boolean = false): Promise<Quiz> => {
+    return createQuizMutation.mutateAsync({ title, description, is_public });
   };
 
   const updateQuiz = async (quiz: Quiz): Promise<void> => {

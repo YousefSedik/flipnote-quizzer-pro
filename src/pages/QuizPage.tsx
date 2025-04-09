@@ -107,14 +107,14 @@ const QuizPage: React.FC = () => {
               </Button>
             </Link>
             <h1 className="text-2xl font-bold">{quiz.title}</h1>
-            {quiz.isPublic && (
+            {quiz.is_public && (
               <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                 Public
               </span>
             )}
           </div>
           <div className="flex gap-2 flex-wrap w-full sm:w-auto justify-end">
-            {quiz.isPublic && (
+            {quiz.is_public && (
               <>
                 <Button variant="outline" size="sm" onClick={copyLinkToClipboard} title="Copy Link">
                   <LinkIcon className="h-4 w-4 sm:mr-2" />

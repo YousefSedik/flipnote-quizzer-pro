@@ -59,7 +59,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>{quiz.title}</CardTitle>
-          {quiz.isPublic && (
+          {quiz.is_public && (
             <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
               Public
             </span>
@@ -102,7 +102,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
         </AlertDialog>
         
         <div className="flex gap-2">
-          {quiz.isPublic && (
+          {quiz.is_public && (
             <>
               <Button variant="outline" size="icon" onClick={copyLinkToClipboard} title="Copy Link">
                 <LinkIcon className="h-4 w-4" />

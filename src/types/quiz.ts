@@ -21,7 +21,7 @@ export interface Quiz {
   description: string;
   questions: Question[];
   createdAt: Date | string;
-  isPublic: boolean;
+  is_public: boolean;
   ownerUsername?: string;
 }
 

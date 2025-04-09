@@ -216,7 +216,7 @@ export const api = {
           title: quiz.title,
           description: quiz.description,
           createdAt: quiz.created_at,
-          isPublic: quiz.is_public,
+          is_public: quiz.is_public,
           questions: [], // Questions are loaded separately
           ownerUsername: quiz.owner_username,
         })),
@@ -269,7 +269,7 @@ export const api = {
         title: quiz.title,
         description: quiz.description,
         createdAt: quiz.created_at,
-        isPublic: quiz.is_public,
+        is_public: quiz.is_public,
         questions,
         ownerUsername: quiz.owner_username,
       };
@@ -318,8 +318,8 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to delete quiz');
       }
-      
-      return response.json();
+      console.log(response);
+      return response;
     },
     
     // Question endpoints
@@ -391,7 +391,7 @@ export const api = {
             title: quiz.title,
             description: quiz.description,
             createdAt: quiz.created_at,
-            isPublic: quiz.is_public,
+            is_public: quiz.is_public,
             questions: [], // Questions are loaded separately
             ownerUsername: quiz.owner_username,
           })),
