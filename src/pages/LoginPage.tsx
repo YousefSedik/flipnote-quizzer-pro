@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -14,7 +14,7 @@ import { LogIn, Mail, Lock } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters')
+  password: z.string()
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
@@ -22,7 +22,6 @@ type LoginValues = z.infer<typeof loginSchema>;
 const LoginPage: React.FC = () => {
   const { login, authState } = useAuth();
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -33,22 +32,14 @@ const LoginPage: React.FC = () => {
   });
 
   const onSubmit = async (values: LoginValues) => {
-    setIsSubmitting(true);
-    try {
-      await login(values.email, values.password);
-      navigate('/quizzes');
-    } catch (error) {
-      console.error('Login failed:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await login(values.email, values.password);
   };
 
   React.useEffect(() => {
-    if (authState.isAuthenticated && !authState.isLoading) {
+    if (authState.isAuthenticated) {
       navigate('/quizzes');
     }
-  }, [authState.isAuthenticated, authState.isLoading, navigate]);
+  }, [authState.isAuthenticated, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -94,9 +85,9 @@ const LoginPage: React.FC = () => {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isSubmitting || authState.isLoading}>
+                <Button type="submit" className="w-full" disabled={authState.isLoading}>
                   <LogIn className="mr-2 h-4 w-4" />
-                  {isSubmitting || authState.isLoading ? 'Logging in...' : 'Log In'}
+                  {authState.isLoading ? 'Logging in...' : 'Log In'}
                 </Button>
               </form>
             </Form>

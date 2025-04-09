@@ -144,7 +144,7 @@ export const api = {
       const quiz = await response.json();
       
       // Fetch questions for this quiz
-      const questionsResponse = await fetch(`${API_URL}/quizzes/${id}/questions`, {
+      const questionsResponse = await fetch(`${API_URL}/questions/${id}/`, {
         headers: authHeaders(),
       });
       
