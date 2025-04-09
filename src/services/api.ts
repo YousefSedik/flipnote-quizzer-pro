@@ -1,26 +1,109 @@
+
 import { Quiz, Question } from '@/types/quiz';
 import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
 const API_URL = 'http://localhost:8000';
 
-// Helper function to get the access token from localStorage
-const getAccessToken = () => {
+// Helper function to get auth data from localStorage
+const getAuthData = () => {
   const authData = localStorage.getItem('auth');
   if (authData) {
     try {
-      const { tokens } = JSON.parse(authData);
-      return tokens?.access;
+      return JSON.parse(authData);
     } catch (error) {
       console.error('Failed to parse auth data from localStorage', error);
+      return null;
     }
   }
   return null;
+};
+
+// Helper function to get the access token
+const getAccessToken = () => {
+  const authData = getAuthData();
+  return authData?.tokens?.access || null;
+};
+
+// Helper function to get the refresh token
+const getRefreshToken = () => {
+  const authData = getAuthData();
+  return authData?.tokens?.refresh || null;
+};
+
+// Helper function to update tokens in localStorage
+const updateTokensInStorage = (access: string) => {
+  const authData = getAuthData();
+  if (authData && authData.tokens) {
+    const updatedAuthData = {
+      ...authData,
+      tokens: {
+        ...authData.tokens,
+        access,
+      },
+    };
+    localStorage.setItem('auth', JSON.stringify(updatedAuthData));
+  }
 };
 
 // Helper function to add auth headers to requests
 const authHeaders = (customToken?: string) => {
   const token = customToken || getAccessToken();
   return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
+// Function to refresh access token
+const refreshAccessToken = async (): Promise<string | null> => {
+  const refresh = getRefreshToken();
+  if (!refresh) return null;
+
+  try {
+    const response = await fetch(`${API_URL}/auth/token/refresh/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to refresh token');
+    }
+    
+    const data: RefreshResponse = await response.json();
+    updateTokensInStorage(data.access);
+    return data.access;
+  } catch (error) {
+    console.error('Token refresh failed', error);
+    return null;
+  }
+};
+
+// Fetch wrapper with token refresh
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  // First try with current access token
+  const headers = {
+    ...options.headers,
+    ...authHeaders(),
+  };
+
+  let response = await fetch(url, { ...options, headers });
+
+  // If unauthorized, try to refresh token and retry
+  if (response.status === 401) {
+    const newAccessToken = await refreshAccessToken();
+    
+    if (newAccessToken) {
+      // Retry with new access token
+      const updatedHeaders = {
+        ...options.headers,
+        'Authorization': `Bearer ${newAccessToken}`,
+      };
+      
+      response = await fetch(url, { ...options, headers: updatedHeaders });
+    }
+  }
+
+  return response;
 };
 
 export interface PaginatedResponse<T> {
@@ -89,12 +172,22 @@ export const api = {
     },
     
     getProfile: async (tokens?: { access: string, refresh: string }): Promise<ProfileResponse> => {
-      const response = await fetch(`${API_URL}/auth/profile/`, {
-        headers: {
-          ...authHeaders(tokens?.access),
-          'Content-Type': 'application/json',
-        },
-      });
+      let response;
+      
+      if (tokens?.access) {
+        response = await fetch(`${API_URL}/auth/profile/`, {
+          headers: {
+            ...authHeaders(tokens.access),
+            'Content-Type': 'application/json',
+          },
+        });
+      } else {
+        response = await fetchWithAuth(`${API_URL}/auth/profile/`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      }
       
       if (!response.ok) {
         throw new Error('Failed to fetch user profile');
@@ -107,12 +200,10 @@ export const api = {
   // Quiz endpoints
   quiz: {
     getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Quiz>> => {
-      const response = await fetch(`${API_URL}/quizzes/?page=${page}&page_size=${pageSize}`, {
-        headers: authHeaders(),
-      });
+      const response = await fetchWithAuth(`${API_URL}/quizzes/?page=${page}&page_size=${pageSize}`);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch quizzes');
+        throw new Error(`Failed to fetch quizzes: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -133,9 +224,7 @@ export const api = {
     },
     
     getOne: async (id: string) => {
-      const response = await fetch(`${API_URL}/quizzes/${id}`, {
-        headers: authHeaders(),
-      });
+      const response = await fetchWithAuth(`${API_URL}/quizzes/${id}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch quiz');
