@@ -200,7 +200,7 @@ export const api = {
   // Quiz endpoints
   quiz: {
     getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Quiz>> => {
-      const response = await fetchWithAuth(`${API_URL}/quizzes/?page=${page}&page_size=${pageSize}`);
+      const response = await fetchWithAuth(`${API_URL}/quizzes?page=${page}&page_size=${pageSize}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch quizzes: ${response.status} ${response.statusText}`);
@@ -233,7 +233,7 @@ export const api = {
       const quiz = await response.json();
       
       // Fetch questions for this quiz
-      const questionsResponse = await fetch(`${API_URL}/questions/${id}/`, {
+      const questionsResponse = await fetch(`${API_URL}/questions/${id}`, {
         headers: authHeaders(),
       });
       
