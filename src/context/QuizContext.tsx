@@ -51,15 +51,32 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     queryKey: ['quizzes', page, pageSize],
     queryFn: () => api.quiz.getAll(page, pageSize),
     enabled: !!authState.isAuthenticated && !!authState.tokens?.access,
-    retry: async (failureCount, error) => {
-      // If we get a 401 error, try refreshing the token
+    retry: (failureCount, error) => {
+      // If we get a 401 error, try refreshing the token outside this function
       if (failureCount < 2 && error instanceof Error && error.message.includes('401')) {
-        const newToken = await refreshToken();
-        return !!newToken; // retry if we got a new token
+        // Trigger token refresh - we don't await here
+        refreshToken();
+        return true; // retry
       }
-      return failureCount < 2; // otherwise standard retry logic
+      return failureCount < 2; // standard retry logic
     },
   });
+
+  // Manual handling of token refresh and refetch
+  useEffect(() => {
+    const handleTokenRefresh = async () => {
+      if (error instanceof Error && error.message.includes('401')) {
+        const newToken = await refreshToken();
+        if (newToken) {
+          refetch();
+        }
+      }
+    };
+    
+    if (error) {
+      handleTokenRefresh();
+    }
+  }, [error, refreshToken, refetch]);
 
   // Refetch quizzes when auth state changes
   useEffect(() => {

@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { User, AuthState, ProfileResponse } from '../types/auth';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthContextProps {
   authState: AuthState;
@@ -28,7 +27,6 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>(() => {
     const savedAuth = localStorage.getItem('auth');
     if (savedAuth) {
@@ -174,7 +172,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
       
       // Navigate to quizzes page after successful login
-      navigate('/quizzes');
+      window.location.href = '/quizzes';
       
       return Promise.resolve();
       
@@ -225,6 +223,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       title: "Logged out",
       description: "You've been logged out successfully",
     });
+    // Navigate to home page after logout
+    window.location.href = '/';
   }, []);
 
   return (

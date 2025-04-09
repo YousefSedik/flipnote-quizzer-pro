@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -32,10 +32,16 @@ const LoginPage: React.FC = () => {
   });
 
   const onSubmit = async (values: LoginValues) => {
-    await login(values.email, values.password);
+    try {
+      await login(values.email, values.password);
+      // Navigation will be handled in the useEffect below
+    } catch (error) {
+      // Error is already handled in the login function
+      console.error('Login error:', error);
+    }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (authState.isAuthenticated) {
       navigate('/quizzes');
     }
