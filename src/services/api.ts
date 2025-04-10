@@ -142,6 +142,7 @@ export const api = {
         body: JSON.stringify({ 
           email, 
           password,
+          password2: password,
           first_name: name || '',
           last_name: ''
         }),
