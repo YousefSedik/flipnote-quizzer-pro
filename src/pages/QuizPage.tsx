@@ -1,11 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, Navigate, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuizContext } from '@/context/QuizContext';
 import FlipCard from '@/components/FlipCard';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
-import { ArrowLeft, Edit, Link as LinkIcon, Share, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Link as LinkIcon, Share, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -14,17 +14,27 @@ import { Skeleton } from '@/components/ui/skeleton';
 const QuizPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getQuiz } = useQuizContext();
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   
-  const { data: quiz, isLoading, error } = useQuery({
+  const { data: quiz, isLoading, error, refetch } = useQuery({
     queryKey: ['quizzes', id],
-    queryFn: () => id ? api.quiz.getOne(id) : Promise.reject('No quiz ID provided'),
+    queryFn: () => {
+      if (!id) return Promise.reject('No quiz ID provided');
+      
+      console.log('Fetching quiz data for ID:', id);
+      return api.quiz.getOne(id).catch(err => {
+        console.error('Error fetching quiz:', err);
+        // Try to fetch as public quiz if private fetch fails
+        return api.quiz.public.getOne(id);
+      });
+    },
     enabled: !!id,
+    retry: 1, // Only retry once to avoid too many API calls
   });
   
   useEffect(() => {
     if (quiz?.questions) {
+      console.log('Setting shuffled questions:', quiz.questions.length);
       setShuffledQuestions([...quiz.questions]);
     }
   }, [quiz]);
@@ -83,9 +93,14 @@ const QuizPage: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-destructive mb-4">Failed to load quiz.</p>
+          <p className="text-destructive mb-4">
+            Failed to load quiz. The server might be unavailable or the quiz doesn't exist.
+          </p>
           <div className="flex gap-4 justify-center">
-            <Button onClick={() => window.location.reload()}>Retry</Button>
+            <Button onClick={() => refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
             <Button variant="outline" onClick={() => navigate('/quizzes')}>
               Back to Quizzes
             </Button>
