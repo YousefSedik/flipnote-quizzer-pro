@@ -43,7 +43,7 @@ const QuizPage: React.FC = () => {
 
   // Check if the current user is the owner of the quiz
   // Using email instead of username since that's what we have in the User type
-  const isOwner = authState.user?.email === quiz?.ownerUsername;
+  const isOwner = authState.user?.username === quiz?.ownerUsername;
   
   // Check if unauthorized error and quiz is private
   const isUnauthorizedPrivateQuiz = error && 

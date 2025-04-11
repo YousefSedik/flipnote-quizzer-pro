@@ -3,6 +3,7 @@ export interface User {
   id?: string;
   email: string;
   name?: string;
+  username: string;
   first_name?: string;
   last_name?: string;
 }
@@ -30,4 +31,5 @@ export interface ProfileResponse {
   email: string;
   first_name: string;
   last_name: string;
+  username: string;
 }

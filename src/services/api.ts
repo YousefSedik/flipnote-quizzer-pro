@@ -323,7 +323,6 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to delete quiz');
       }
-      console.log(response);
       return response;
     },
     

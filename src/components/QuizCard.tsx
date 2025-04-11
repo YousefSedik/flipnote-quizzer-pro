@@ -30,8 +30,8 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
   const { authState } = useAuth();
   
   // Check if the current user is the owner of the quiz
-  // Use the email as an identifier since username doesn't exist
-  const isOwner = authState.user?.email === quiz.ownerUsername;
+  // Use the email as an identifier since username doesn't exist'
+  const isOwner = authState.user?.username === quiz.ownerUsername;
   
   const copyLinkToClipboard = () => {
     const url = `${window.location.origin}/quiz/${quiz.id}`;
