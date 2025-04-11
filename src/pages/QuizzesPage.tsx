@@ -1,23 +1,34 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import QuizCard from '@/components/QuizCard';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import QuizPagination from '@/components/QuizPagination';
 import { PaginationParams } from '@/types/quiz';
+import { useAuth } from '@/context/AuthContext';
 
 const QuizzesPage: React.FC = () => {
+  const { authState } = useAuth();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const pageSize = 9; // Number of quizzes per page
+
+  // Redirect to login if user is not authenticated
+  useEffect(() => {
+    if (!authState.isAuthenticated) {
+      navigate('/login');
+    }
+  }, [authState.isAuthenticated, navigate]);
 
   const { data: quizzesData, isLoading, error } = useQuery({
     queryKey: ['quizzes', page, pageSize],
     queryFn: () => api.quiz.getAll(page, pageSize),
+    enabled: authState.isAuthenticated, // Only run query if authenticated
   });
 
   const quizzes = quizzesData?.results || [];
@@ -35,6 +46,11 @@ const QuizzesPage: React.FC = () => {
     setPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // If not authenticated, don't render content while redirect happens
+  if (!authState.isAuthenticated) {
+    return null;
+  }
 
   const renderContent = () => {
     if (isLoading) {
