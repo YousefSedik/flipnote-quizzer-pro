@@ -455,7 +455,7 @@ export const api = {
       
       getOne: async (id: string) => {
         try {
-          const response = await fetch(`${API_URL}/quizzes/public/${id}`);
+          const response = await fetch(`${API_URL}/quizzes/${id}`);
           
           if (!response.ok) {
             // For demo/development purposes, return mock data if API is unavailable
