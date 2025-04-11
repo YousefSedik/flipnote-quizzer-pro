@@ -246,35 +246,37 @@ export const api = {
       
       const questionsData = await questionsResponse.json();
       
-      // Combine MCQ and written questions
-      const questions = [
-        ...(questionsData.mcq_questions || []).map((q: any) => ({
-          id: q.id.toString(),
-          text: q.text,
-          type: 'mcq' as const,
-          answer: q.correct_answer,
-          options: q.choices.split('|').map((choice: string, index: number) => ({
-            id: index.toString(),
-            text: choice,
-            isCorrect: choice === q.correct_answer,
-          })),
+      // Map questions based on the API response format
+      const mcqQuestions = (questionsData.mcq_questions || []).map((q: any) => ({
+        id: q.id.toString(),
+        text: q.text,
+        type: 'mcq' as const,
+        answer: q.correct_answer,
+        options: (q.choices || []).map((choice: string, index: number) => ({
+          id: index.toString(),
+          text: choice,
+          isCorrect: choice === q.correct_answer,
         })),
-        ...(questionsData.written_questions || []).map((q: any) => ({
-          id: q.id.toString(),
-          text: q.text,
-          type: 'written' as const,
-          answer: q.answer,
-        })),
-      ];
+      }));
+      
+      const writtenQuestions = (questionsData.written_questions || []).map((q: any) => ({
+        id: q.id.toString(),
+        text: q.text,
+        type: 'written' as const,
+        answer: q.answer,
+      }));
+      
+      // Quiz data might come from the questions response in this format
+      const quizData = questionsData.quiz || quiz;
       
       return {
-        id: quiz.id,
-        title: quiz.title,
-        description: quiz.description,
-        createdAt: quiz.created_at,
-        is_public: quiz.is_public,
-        questions,
-        ownerUsername: quiz.owner_username,
+        id: quizData.id,
+        title: quizData.title,
+        description: quizData.description,
+        createdAt: quizData.created_at,
+        is_public: quizData.is_public,
+        questions: [...mcqQuestions, ...writtenQuestions],
+        ownerUsername: quizData.owner_username,
       };
     },
     
@@ -492,7 +494,49 @@ export const api = {
             throw new Error(`Failed to fetch public quiz: ${response.status} ${response.statusText}`);
           }
           
-          return response.json();
+          const quiz = await response.json();
+          
+          // Fetch questions for this public quiz
+          const questionsResponse = await fetch(`${API_URL}/questions/${id}`);
+          
+          if (!questionsResponse.ok) {
+            throw new Error('Failed to fetch quiz questions');
+          }
+          
+          const questionsData = await questionsResponse.json();
+          
+          // Map questions based on the API response format
+          const mcqQuestions = (questionsData.mcq_questions || []).map((q: any) => ({
+            id: q.id.toString(),
+            text: q.text,
+            type: 'mcq' as const,
+            answer: q.correct_answer,
+            options: (q.choices || []).map((choice: string, index: number) => ({
+              id: index.toString(),
+              text: choice,
+              isCorrect: choice === q.correct_answer,
+            })),
+          }));
+          
+          const writtenQuestions = (questionsData.written_questions || []).map((q: any) => ({
+            id: q.id.toString(),
+            text: q.text,
+            type: 'written' as const,
+            answer: q.answer,
+          }));
+          
+          // Quiz data might come from the questions response in this format
+          const quizData = questionsData.quiz || quiz;
+          
+          return {
+            id: quizData.id,
+            title: quizData.title,
+            description: quizData.description,
+            createdAt: quizData.created_at,
+            is_public: quizData.is_public,
+            questions: [...mcqQuestions, ...writtenQuestions],
+            ownerUsername: quizData.owner_username,
+          };
         } catch (error) {
           console.error('Error fetching public quiz:', error);
           throw error; // Rethrow to be handled by the component
