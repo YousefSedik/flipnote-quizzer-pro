@@ -5,16 +5,18 @@ import { useQuizContext } from '@/context/QuizContext';
 import FlipCard from '@/components/FlipCard';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
-import { ArrowLeft, Edit, Link as LinkIcon, Share, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Edit, Link as LinkIcon, Share, Loader2, RefreshCw, User, Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
 
 const QuizPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
+  const { authState } = useAuth();
   
   const { data: quiz, isLoading, error, refetch } = useQuery({
     queryKey: ['quizzes', id],
@@ -38,6 +40,15 @@ const QuizPage: React.FC = () => {
       setShuffledQuestions([...quiz.questions]);
     }
   }, [quiz]);
+
+  // Check if the current user is the owner of the quiz
+  const isOwner = authState.user?.username === quiz?.ownerUsername;
+  
+  // Check if unauthorized error and quiz is private
+  const isUnauthorizedPrivateQuiz = error && 
+    error.toString().includes('401') && 
+    (error.toString().includes('Unauthorized') || 
+     error.toString().includes('failed to fetch'));
 
   const shuffleQuestions = () => {
     if (!quiz?.questions) return;
@@ -88,6 +99,26 @@ const QuizPage: React.FC = () => {
     );
   }
 
+  if (isUnauthorizedPrivateQuiz) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <Lock className="h-16 w-16 text-muted-foreground" />
+            <h2 className="text-2xl font-bold">Private Quiz</h2>
+            <p className="text-muted-foreground mb-4">
+              This quiz is private and can only be accessed by its owner.
+            </p>
+            <Button variant="outline" onClick={() => navigate('/quizzes')}>
+              Back to Quizzes
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (error || !quiz) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -132,8 +163,6 @@ const QuizPage: React.FC = () => {
                 Private
               </span>
             )}
-            
-
           </div>
           <div className="flex gap-2 flex-wrap w-full sm:w-auto justify-end">
             {quiz.is_public && (
@@ -151,28 +180,39 @@ const QuizPage: React.FC = () => {
             <Button variant="outline" size="sm" onClick={shuffleQuestions}>
               Shuffle
             </Button>
-            <Link to={`/quiz/${quiz.id}/edit`}>
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Edit</span>
-              </Button>
-            </Link>
+            {isOwner && (
+              <Link to={`/quiz/${quiz.id}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Edit</span>
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
         
         {quiz.description && (
-          <p className="text-muted-foreground mb-8">{quiz.description}</p>
+          <p className="text-muted-foreground mb-4">{quiz.description}</p>
         )}
+        
+        <div className="flex items-center gap-1 mb-6">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            Created by {quiz.ownerUsername || 'Unknown user'}
+          </p>
+        </div>
         
         {shuffledQuestions.length === 0 ? (
           <div className="text-center py-12 border rounded-lg">
             <p className="text-muted-foreground mb-4">This quiz doesn't have any questions yet.</p>
-            <Link to={`/quiz/${quiz.id}/edit`}>
-              <Button>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Quiz
-              </Button>
-            </Link>
+            {isOwner && (
+              <Link to={`/quiz/${quiz.id}/edit`}>
+                <Button>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Quiz
+                </Button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

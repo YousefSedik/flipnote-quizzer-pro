@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Quiz } from '@/types/quiz';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Edit, Play, Trash2, Link as LinkIcon, Share } from 'lucide-react';
+import { Edit, Play, Trash2, Link as LinkIcon, Share, User } from 'lucide-react';
 import { useQuizContext } from '@/context/QuizContext';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,10 @@ interface QuizCardProps {
 
 const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
   const { deleteQuiz } = useQuizContext();
+  const { authState } = useAuth();
+  
+  // Check if the current user is the owner of the quiz
+  const isOwner = authState.user?.username === quiz.ownerUsername;
   
   const copyLinkToClipboard = () => {
     const url = `${window.location.origin}/quiz/${quiz.id}`;
@@ -65,15 +70,20 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
             </span>
           )}
           {!quiz.is_public && (
-              <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                Private
-              </span>
-            )}
-            
+            <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+              Private
+            </span>
+          )}
         </div>
         <CardDescription>{quiz.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
+        <div className="flex items-center gap-1 mb-2">
+          <User className="h-3 w-3 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            {quiz.ownerUsername || 'Unknown user'}
+          </p>
+        </div>
         <p className="text-sm text-muted-foreground">
           {quiz.questions.length} {quiz.questions.length === 1 ? 'question' : 'questions'}
         </p>
@@ -82,30 +92,33 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
         </p>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete your
-                quiz and all its questions.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteQuiz(quiz.id)}
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {isOwner && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete your
+                  quiz and all its questions.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteQuiz(quiz.id)}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        {!isOwner && <div />}
         
         <div className="flex gap-2">
           {quiz.is_public && (
@@ -118,11 +131,13 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
               </Button>
             </>
           )}
-          <Link to={`/quiz/${quiz.id}/edit`}>
-            <Button variant="outline" size="icon">
-              <Edit className="h-4 w-4" />
-            </Button>
-          </Link>
+          {isOwner && (
+            <Link to={`/quiz/${quiz.id}/edit`}>
+              <Button variant="outline" size="icon">
+                <Edit className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
           <Link to={`/quiz/${quiz.id}`}>
             <Button size="icon">
               <Play className="h-4 w-4" />
