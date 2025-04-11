@@ -81,11 +81,14 @@
 /* Flip card styles */
 .flip-card {
   perspective: 1000px;
+  display: flex;
 }
 
 .flip-card-inner {
   transition: transform 0.6s;
   transform-style: preserve-3d;
+  flex: 1;
+  display: flex;
 }
 
 .flip-card.flipped .flip-card-inner {
@@ -95,6 +98,8 @@
 .flip-card-front,
 .flip-card-back {
   backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .flip-card-back {

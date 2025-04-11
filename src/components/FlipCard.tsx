@@ -55,13 +55,13 @@ const FlipCard: React.FC<FlipCardProps> = ({ question, className }) => {
           </div>
           
           {question.type === 'mcq' && question.options && (
-            <div className="space-y-2 mt-auto">
+            <div className="space-y-2 mt-auto overflow-y-auto max-h-[60%]">
               {question.options.map((option) => (
                 <div
                   key={option.id}
                   onClick={() => handleOptionClick(option.text, option.isCorrect)}
                   className={cn(
-                    "p-3 rounded-md border border-input cursor-pointer transition-all hover:bg-accent",
+                    "p-3 rounded-md border border-input cursor-pointer transition-all hover:bg-accent break-words",
                     selectedOption === option.text && "bg-primary text-primary-foreground"
                   )}
                 >
@@ -93,7 +93,7 @@ const FlipCard: React.FC<FlipCardProps> = ({ question, className }) => {
           )}
           onClick={handleFlip}
         >
-          <div className="text-center">
+          <div className="text-center max-h-full overflow-y-auto w-full">
             {isCorrect !== null && (
               <div className="flex justify-center mb-4">
                 {isCorrect ? (
@@ -114,23 +114,25 @@ const FlipCard: React.FC<FlipCardProps> = ({ question, className }) => {
               {question.type === 'mcq' && question.options ? (
                 <div className="space-y-2">
                   <h3 className="text-lg font-bold mb-3">Correct Answer:</h3>
-                  {question.options.map((option) => (
-                    <div 
-                      key={option.id} 
-                      className={cn(
-                        "p-2 rounded-md",
-                        option.isCorrect ? "bg-green-500/20" : "",
-                        selectedOption === option.text && !option.isCorrect ? "bg-red-500/20" : ""
-                      )}
-                    >
-                      {option.text} {option.isCorrect && "✓"}
-                    </div>
-                  ))}
+                  <div className="overflow-y-auto max-h-[150px]">
+                    {question.options.map((option) => (
+                      <div 
+                        key={option.id} 
+                        className={cn(
+                          "p-2 rounded-md mb-2 break-words",
+                          option.isCorrect ? "bg-green-500/20" : "",
+                          selectedOption === option.text && !option.isCorrect ? "bg-red-500/20" : ""
+                        )}
+                      >
+                        {option.text} {option.isCorrect && "✓"}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div>
                   <h3 className="text-lg font-bold mb-3">Answer:</h3>
-                  <p>{question.answer}</p>
+                  <p className="break-words">{question.answer}</p>
                 </div>
               )}
             </div>
