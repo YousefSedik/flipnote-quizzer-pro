@@ -7,7 +7,7 @@ import { api } from '@/services/api';
 interface AuthContextProps {
   authState: AuthState;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  register: (email: string, username: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<string | null>;
 }

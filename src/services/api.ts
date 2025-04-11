@@ -3,7 +3,7 @@ import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
 // Let's use a variable that can be easily changed instead of hardcoding
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-production-api.com' // Replace with your production API URL
+  ? 'https://flipnote-quizzer-backend.azurewebsites.net' // Replace with your production API URL
   : 'http://localhost:8000';
 
 // Helper function to get auth data from localStorage

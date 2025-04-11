@@ -15,6 +15,7 @@ import { UserPlus, Mail, Lock, User } from 'lucide-react';
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').optional(),
   email: z.string().email('Please enter a valid email address'),
+  username: z.string().min(5, 'Username must be at least 6 characters').max(16, 'Username must be at most 15 characters'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string().min(6, 'Confirm password must be at least 6 characters')
 }).refine((data) => data.password === data.confirmPassword, {
@@ -34,12 +35,13 @@ const RegisterPage: React.FC = () => {
       name: '',
       email: '',
       password: '',
+      username: '',
       confirmPassword: ''
     }
   });
 
   const onSubmit = async (values: RegisterValues) => {
-    await register(values.email, values.password, values.name);
+    await register(values.email, values.username, values.password, values.name);
   };
 
   React.useEffect(() => {
@@ -92,6 +94,22 @@ const RegisterPage: React.FC = () => {
                     </FormItem>
                   )}
                 />
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                            <Input className="pl-10" placeholder="Enter your username" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 <FormField
                   control={form.control}
                   name="password"
