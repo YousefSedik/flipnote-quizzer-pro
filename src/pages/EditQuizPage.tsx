@@ -7,7 +7,7 @@ import QuestionForm from '@/components/QuestionForm';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, ArrowLeft, FileText, Book } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -23,6 +23,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
+import { Question } from '@/types/quiz';
 
 const EditQuizPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,10 +39,192 @@ const EditQuizPage: React.FC = () => {
   
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
+  const [isPdfUploaderOpen, setIsPdfUploaderOpen] = useState(false);
+  const [isBookUploaderOpen, setIsBookUploaderOpen] = useState(false);
+  const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
+  const [isReviewingQuestions, setIsReviewingQuestions] = useState(false);
+  const [currentReviewQuestion, setCurrentReviewQuestion] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleQuestionFormComplete = () => {
     setIsAddingQuestion(false);
     setEditingQuestion(null);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'book') => {
+    const file = event.target.files?.[0];
+    if (!file || !id) {
+      toast({
+        title: "Error",
+        description: "No file selected",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file type
+    if (type === 'pdf' && file.type !== 'application/pdf') {
+      toast({
+        title: "Error",
+        description: "Please upload a PDF file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      
+      // Create FormData to send file to backend
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('quizId', id);
+      formData.append('type', type);
+
+      // Simulate API call for file processing
+      // In a real implementation, this would be:
+      // const response = await api.quiz.processFile(id, formData);
+      
+      // For now, let's simulate a response after a delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Mock generated questions based on upload type
+      let mockQuestions: Question[] = [];
+      
+      if (type === 'pdf') {
+        mockQuestions = [
+          {
+            id: `temp-${Date.now()}-1`,
+            text: "What is the main topic of the uploaded PDF?",
+            type: "written",
+            answer: "Sample answer extracted from PDF"
+          },
+          {
+            id: `temp-${Date.now()}-2`,
+            text: "Which of the following concepts was mentioned in the PDF?",
+            type: "mcq",
+            answer: "Concept B",
+            options: [
+              { id: "1", text: "Concept A", isCorrect: false },
+              { id: "2", text: "Concept B", isCorrect: true },
+              { id: "3", text: "Concept C", isCorrect: false }
+            ]
+          }
+        ];
+      } else {
+        mockQuestions = [
+          {
+            id: `temp-${Date.now()}-1`,
+            text: "Who is the main character in this book?",
+            type: "written",
+            answer: "Character name extracted from book"
+          },
+          {
+            id: `temp-${Date.now()}-2`,
+            text: "What is the setting of this book?",
+            type: "mcq",
+            answer: "Setting B",
+            options: [
+              { id: "1", text: "Setting A", isCorrect: false },
+              { id: "2", text: "Setting B", isCorrect: true },
+              { id: "3", text: "Setting C", isCorrect: false }
+            ]
+          }
+        ];
+      }
+
+      setGeneratedQuestions(mockQuestions);
+      setIsReviewingQuestions(true);
+      setCurrentReviewQuestion(0);
+      
+      // Close the upload dialogs
+      setIsPdfUploaderOpen(false);
+      setIsBookUploaderOpen(false);
+      
+      toast({
+        title: "Success",
+        description: `${mockQuestions.length} questions generated. Please review them before adding.`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process file",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      
+      // Reset the file input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
+  const handleSaveGeneratedQuestion = (question: Question) => {
+    if (!id) return;
+    
+    // Add the current question to the quiz
+    if (question.type === 'mcq' && question.options) {
+      // For MCQ questions, format as required by the backend
+      const correctOption = question.options.find(o => o.isCorrect);
+      const correctAnswer = correctOption ? correctOption.text : '';
+      const optionTexts = question.options.map(o => o.text);
+      
+      api.quiz.questions.create(id, {
+        text: question.text,
+        type: 'mcq',
+        options: optionTexts,
+        correct_answer: correctAnswer
+      }).then(() => {
+        toast({
+          title: "Success",
+          description: "Question added to quiz"
+        });
+      }).catch(() => {
+        toast({
+          title: "Error",
+          description: "Failed to add question",
+          variant: "destructive"
+        });
+      });
+    } else {
+      // For written questions
+      api.quiz.questions.create(id, {
+        text: question.text,
+        type: 'written',
+        answer: question.answer
+      }).then(() => {
+        toast({
+          title: "Success",
+          description: "Question added to quiz"
+        });
+      }).catch(() => {
+        toast({
+          title: "Error",
+          description: "Failed to add question",
+          variant: "destructive"
+        });
+      });
+    }
+    
+    // Move to next question or close review
+    if (currentReviewQuestion < generatedQuestions.length - 1) {
+      setCurrentReviewQuestion(currentReviewQuestion + 1);
+    } else {
+      setIsReviewingQuestions(false);
+      setGeneratedQuestions([]);
+    }
+  };
+
+  const handleSkipQuestion = () => {
+    // Move to next question or close review
+    if (currentReviewQuestion < generatedQuestions.length - 1) {
+      setCurrentReviewQuestion(currentReviewQuestion + 1);
+    } else {
+      setIsReviewingQuestions(false);
+      setGeneratedQuestions([]);
+    }
   };
 
   if (isLoading) {
@@ -104,10 +288,22 @@ const EditQuizPage: React.FC = () => {
           <div>
             <div className="flex justify-between items-center mb-4 flex-col sm:flex-row gap-2">
               <h2 className="text-lg font-medium">Questions</h2>
-              <Button onClick={() => setIsAddingQuestion(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Question
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => setIsAddingQuestion(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Question
+                </Button>
+                
+                <Button variant="outline" onClick={() => setIsPdfUploaderOpen(true)}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Upload PDF
+                </Button>
+                
+                <Button variant="outline" onClick={() => setIsBookUploaderOpen(true)}>
+                  <Book className="mr-2 h-4 w-4" />
+                  Upload Book
+                </Button>
+              </div>
             </div>
             
             {quiz.questions.length === 0 ? (
@@ -199,6 +395,118 @@ const EditQuizPage: React.FC = () => {
                   question={quiz.questions.find(q => q.id === editingQuestion)} 
                   onComplete={handleQuestionFormComplete} 
                 />
+              )}
+            </DialogContent>
+          </Dialog>
+          
+          {/* PDF Uploader Dialog */}
+          <Dialog open={isPdfUploaderOpen} onOpenChange={setIsPdfUploaderOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Upload PDF with Questions</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Upload a PDF file containing questions. Our system will automatically extract questions and answers.
+                </p>
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                  <label htmlFor="pdf-file" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    PDF File
+                  </label>
+                  <input
+                    id="pdf-file"
+                    type="file"
+                    accept=".pdf"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-foreground file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    onChange={(e) => handleFileUpload(e, 'pdf')}
+                    disabled={isUploading}
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsPdfUploaderOpen(false)}
+                    disabled={isUploading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Book Uploader Dialog */}
+          <Dialog open={isBookUploaderOpen} onOpenChange={setIsBookUploaderOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Upload Book to Generate Questions</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Upload a book file (PDF, EPUB, etc). Our system will analyze the content and generate questions automatically.
+                </p>
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                  <label htmlFor="book-file" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Book File
+                  </label>
+                  <input
+                    id="book-file"
+                    type="file"
+                    accept=".pdf,.epub,.mobi,.txt"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-foreground file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    onChange={(e) => handleFileUpload(e, 'book')}
+                    disabled={isUploading}
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsBookUploaderOpen(false)}
+                    disabled={isUploading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Question Review Dialog */}
+          <Dialog 
+            open={isReviewingQuestions} 
+            onOpenChange={(open) => !open && setIsReviewingQuestions(false)}
+          >
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Review Generated Questions</DialogTitle>
+              </DialogHeader>
+              
+              {generatedQuestions.length > 0 && currentReviewQuestion < generatedQuestions.length && (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Question {currentReviewQuestion + 1} of {generatedQuestions.length}
+                  </p>
+                  
+                  <QuestionForm 
+                    quizId={quiz.id} 
+                    question={generatedQuestions[currentReviewQuestion]} 
+                    onComplete={() => handleSaveGeneratedQuestion(generatedQuestions[currentReviewQuestion])} 
+                  />
+                  
+                  <div className="flex justify-between">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleSkipQuestion}
+                    >
+                      Skip
+                    </Button>
+                    <Button 
+                      onClick={() => handleSaveGeneratedQuestion(generatedQuestions[currentReviewQuestion])}
+                    >
+                      Save & {currentReviewQuestion < generatedQuestions.length - 1 ? 'Next' : 'Finish'}
+                    </Button>
+                  </div>
+                </div>
               )}
             </DialogContent>
           </Dialog>
