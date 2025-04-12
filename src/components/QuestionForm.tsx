@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Question, QuestionType, Option } from '@/types/quiz';
 import { useQuizContext } from '@/context/QuizContext';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, Trash2, X } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/hooks/use-toast';
 
@@ -82,25 +81,44 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
       return;
     }
 
-    if (question) {
-      updateQuestion(quizId, {
-        id: question.id,
-        text: questionText,
-        type: questionType,
-        answer: questionType === 'mcq' ? 
-          options.filter(o => o.isCorrect).map(o => o.text).join(', ') : 
-          answer,
-        options: questionType === 'mcq' ? options : undefined,
-      });
+    // Format data according to the requested format
+    if (questionType === 'mcq') {
+      const correctOption = options.find(o => o.isCorrect);
+      const correctAnswer = correctOption ? correctOption.text : '';
+      const optionTexts = options.map(o => o.text);
+      
+      if (question) {
+        updateQuestion(quizId, {
+          id: question.id,
+          text: questionText,
+          type: 'mcq',
+          options: optionTexts,
+          answer: correctAnswer
+        });
+      } else {
+        addQuestion(quizId, {
+          text: questionText,
+          type: 'mcq',
+          options: optionTexts,
+          answer: correctAnswer
+        });
+      }
     } else {
-      addQuestion(quizId, {
-        text: questionText,
-        type: questionType,
-        answer: questionType === 'mcq' ? 
-          options.filter(o => o.isCorrect).map(o => o.text).join(', ') : 
-          answer,
-        options: questionType === 'mcq' ? options : undefined,
-      });
+      // Written question
+      if (question) {
+        updateQuestion(quizId, {
+          id: question.id,
+          text: questionText,
+          type: 'written',
+          answer: answer
+        });
+      } else {
+        addQuestion(quizId, {
+          text: questionText,
+          type: 'written',
+          answer: answer
+        });
+      }
     }
 
     onComplete();
