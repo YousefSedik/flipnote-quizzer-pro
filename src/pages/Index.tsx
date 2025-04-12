@@ -10,15 +10,18 @@ import { api } from '@/services/api';
 import QuizCard from '@/components/QuizCard';
 import QuizPagination from '@/components/QuizPagination';
 import { PaginationParams } from '@/types/quiz';
+import SearchSection from '@/components/SearchSection';
+import HistorySection from '@/components/HistorySection';
 
 const Index = () => {
   const { authState } = useAuth();
   const isAuthenticated = authState.isAuthenticated;
   const [page, setPage] = useState(1);
   const pageSize = 6; // Number of quizzes per page
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: publicQuizzesData, isLoading } = useQuery({
-    queryKey: ['publicQuizzes', page, pageSize],
+    queryKey: ['publicQuizzes', page, pageSize, searchQuery],
     queryFn: () => api.quiz.public.getAll(page, pageSize),
     // Only fetch if API is available, avoiding unnecessary API calls during development
     retry: 1,
@@ -41,64 +44,57 @@ const Index = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setPage(1); // Reset to first page when searching
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <section className="flex flex-col items-center justify-center text-center py-12 md:py-20">
-          <div className="space-y-6 max-w-3xl px-4">
-            <h1 className="text-3xl font-bold sm:text-4xl md:text-5xl lg:text-6xl">
-              Create and Share Interactive Quizzes
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
-              Engage learners with interactive flashcard quizzes that are fun and effective.
-              Perfect for students, teachers, and anyone looking to learn something new.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3 max-w-lg mx-auto">
-              <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-3 w-full sm:w-auto">
-                <Share className="h-5 w-5 text-green-600 mr-2" />
-                <span>Make quizzes public or private</span>
-              </div>
-              <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-3 w-full sm:w-auto">
-                <PlusCircle className="h-5 w-5 text-blue-600 mr-2" />
-                <span>Create custom flashcards</span>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4">
-              {isAuthenticated ? (
-                <>
-                  <Link to="/create" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full gap-2">
-                      <PlusCircle className="h-5 w-5" />
-                      Create a Quiz
-                    </Button>
-                  </Link>
-                  <Link to="/quizzes" className="w-full sm:w-auto">
-                    <Button size="lg" variant="outline" className="w-full gap-2">
-                      <List className="h-5 w-5" />
-                      View My Quizzes
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link to="/register" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full gap-2">
-                      <UserPlus className="h-5 w-5" />
-                      Sign Up
-                    </Button>
-                  </Link>
-                  <Link to="/login" className="w-full sm:w-auto">
-                    <Button size="lg" variant="outline" className="w-full gap-2">
-                      <LogIn className="h-5 w-5" />
-                      Log In
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
+        {isAuthenticated ? (
+          <div className="space-y-8">
+            <SearchSection onSearch={handleSearch} />
+            <HistorySection />
           </div>
-        </section>
+        ) : (
+          <section className="flex flex-col items-center justify-center text-center py-12 md:py-20">
+            <div className="space-y-6 max-w-3xl px-4">
+              <h1 className="text-3xl font-bold sm:text-4xl md:text-5xl lg:text-6xl">
+                Create and Share Interactive Quizzes
+              </h1>
+              <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
+                Engage learners with interactive flashcard quizzes that are fun and effective.
+                Perfect for students, teachers, and anyone looking to learn something new.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3 max-w-lg mx-auto">
+                <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-3 w-full sm:w-auto">
+                  <Share className="h-5 w-5 text-green-600 mr-2" />
+                  <span>Make quizzes public or private</span>
+                </div>
+                <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-3 w-full sm:w-auto">
+                  <PlusCircle className="h-5 w-5 text-blue-600 mr-2" />
+                  <span>Create custom flashcards</span>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4">
+                <Link to="/register" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full gap-2">
+                    <UserPlus className="h-5 w-5" />
+                    Sign Up
+                  </Button>
+                </Link>
+                <Link to="/login" className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="w-full gap-2">
+                    <LogIn className="h-5 w-5" />
+                    Log In
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         {!isLoading && publicQuizzes.length > 0 && (
           <section className="py-12">

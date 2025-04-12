@@ -1,28 +1,29 @@
 
-export type QuestionType = 'mcq' | 'written';
-
 export interface Option {
   id: string;
   text: string;
   isCorrect: boolean;
 }
 
+export type QuestionType = 'mcq' | 'written';
+
 export interface Question {
   id: string;
   text: string;
   type: QuestionType;
-  answer: string;
   options?: Option[];
+  answer: string;
 }
 
 export interface Quiz {
   id: string;
   title: string;
   description: string;
-  questions: Question[];
-  createdAt: Date | string;
+  createdAt: string;
   is_public: boolean;
-  ownerUsername?: string;
+  questions: Question[];
+  ownerUsername: string;
+  last_accessed?: string; // Added for history items
 }
 
 export interface PaginationParams {

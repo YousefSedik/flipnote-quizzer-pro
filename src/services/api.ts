@@ -1,12 +1,10 @@
 import { Quiz, Question } from '@/types/quiz';
 import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
-// Let's use a variable that can be easily changed instead of hardcoding
 const API_URL = process.env.NODE_ENV === 'production' 
   ? 'https://flipnote-quizzer-backend.azurewebsites.net' // Replace with your production API URL
   : 'http://localhost:8000';
 
-// Helper function to get auth data from localStorage
 const getAuthData = () => {
   const authData = localStorage.getItem('auth');
   if (authData) {
@@ -20,19 +18,16 @@ const getAuthData = () => {
   return null;
 };
 
-// Helper function to get the access token
 const getAccessToken = () => {
   const authData = getAuthData();
   return authData?.tokens?.access || null;
 };
 
-// Helper function to get the refresh token
 const getRefreshToken = () => {
   const authData = getAuthData();
   return authData?.tokens?.refresh || null;
 };
 
-// Helper function to update tokens in localStorage
 const updateTokensInStorage = (access: string) => {
   const authData = getAuthData();
   if (authData && authData.tokens) {
@@ -47,13 +42,11 @@ const updateTokensInStorage = (access: string) => {
   }
 };
 
-// Helper function to add auth headers to requests
 const authHeaders = (customToken?: string) => {
   const token = customToken || getAccessToken();
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
-// Function to refresh access token
 const refreshAccessToken = async (): Promise<string | null> => {
   const refresh = getRefreshToken();
   if (!refresh) return null;
@@ -80,9 +73,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
   }
 };
 
-// Fetch wrapper with token refresh
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  // First try with current access token
   const headers = {
     ...options.headers,
     ...authHeaders(),
@@ -90,12 +81,10 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
   let response = await fetch(url, { ...options, headers });
 
-  // If unauthorized, try to refresh token and retry
   if (response.status === 401) {
     const newAccessToken = await refreshAccessToken();
     
     if (newAccessToken) {
-      // Retry with new access token
       const updatedHeaders = {
         ...options.headers,
         'Authorization': `Bearer ${newAccessToken}`,
@@ -116,7 +105,6 @@ export interface PaginatedResponse<T> {
 }
 
 export const api = {
-  // Auth endpoints
   auth: {
     login: async (email: string, password: string): Promise<LoginResponse> => {
       const response = await fetch(`${API_URL}/auth/login/`, {
@@ -200,7 +188,6 @@ export const api = {
     }
   },
   
-  // Quiz endpoints
   quiz: {
     getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Quiz>> => {
       const response = await fetchWithAuth(`${API_URL}/quizzes?page=${page}&page_size=${pageSize}`);
@@ -235,7 +222,6 @@ export const api = {
       
       const quiz = await response.json();
       
-      // Fetch questions for this quiz
       const questionsResponse = await fetch(`${API_URL}/questions/${id}`, {
         headers: authHeaders(),
       });
@@ -246,7 +232,6 @@ export const api = {
       
       const questionsData = await questionsResponse.json();
       
-      // Map questions based on the API response format
       const mcqQuestions = (questionsData.mcq_questions || []).map((q: any) => ({
         id: q.id.toString(),
         text: q.text,
@@ -266,7 +251,6 @@ export const api = {
         answer: q.answer,
       }));
       
-      // Quiz data might come from the questions response in this format
       const quizData = questionsData.quiz || quiz;
       
       return {
@@ -326,7 +310,6 @@ export const api = {
       return response;
     },
     
-    // Question endpoints
     questions: {
       create: async (quizId: string, question: Omit<Question, 'id'>) => {
         const response = await fetch(`${API_URL}/quizzes/${quizId}/questions`, {
@@ -376,14 +359,12 @@ export const api = {
       },
     },
     
-    // Public quizzes - Updated to handle errors better and use absolute URLs
     public: {
       getAll: async (page = 1, pageSize = 6): Promise<PaginatedResponse<Quiz>> => {
         try {
           const response = await fetch(`${API_URL}/quizzes/public?page=${page}&page_size=${pageSize}`);
           
           if (!response.ok) {
-            // For demo/development purposes, return mock data if API is unavailable
             if (process.env.NODE_ENV !== 'production') {
               console.warn('Using mock data for public quizzes (API unavailable)');
               return {
@@ -442,7 +423,6 @@ export const api = {
           };
         } catch (error) {
           console.error('Error fetching public quizzes:', error);
-          // Return empty data structure instead of throwing
           return {
             count: 0,
             next: null,
@@ -462,7 +442,6 @@ export const api = {
           
           const quiz = await response.json();
           
-          // Fetch questions for this public quiz
           const questionsResponse = await fetch(`${API_URL}/questions/${id}`);
           
           if (!questionsResponse.ok) {
@@ -471,7 +450,6 @@ export const api = {
           
           const questionsData = await questionsResponse.json();
           
-          // Map questions based on the API response format
           const mcqQuestions = (questionsData.mcq_questions || []).map((q: any) => ({
             id: q.id.toString(),
             text: q.text,
@@ -491,7 +469,6 @@ export const api = {
             answer: q.answer,
           }));
           
-          // Quiz data might come from the questions response in this format
           const quizData = questionsData.quiz || quiz;
           
           return {
@@ -505,8 +482,84 @@ export const api = {
           };
         } catch (error) {
           console.error('Error fetching public quiz:', error);
-          throw error; // Rethrow to be handled by the component
+          throw error;
         }
+      }
+    },
+    
+    getHistory: async (): Promise<PaginatedResponse<Quiz>> => {
+      try {
+        const response = await fetchWithAuth(`${API_URL}/quizzes/history`);
+        
+        if (!response.ok) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('Using mock data for quiz history (API unavailable)');
+            return {
+              count: 3,
+              next: null,
+              previous: null,
+              results: [
+                {
+                  id: 'mock-history-1',
+                  title: 'JavaScript Fundamentals',
+                  description: 'Test your JavaScript knowledge',
+                  createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+                  is_public: true,
+                  questions: [],
+                  ownerUsername: 'testuser',
+                  last_accessed: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+                },
+                {
+                  id: 'mock-history-2',
+                  title: 'React Hooks Quiz',
+                  description: 'Learn about React hooks',
+                  createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+                  is_public: false,
+                  questions: [],
+                  ownerUsername: 'testuser',
+                  last_accessed: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+                },
+                {
+                  id: 'mock-history-3',
+                  title: 'TypeScript Basics',
+                  description: 'Master TypeScript fundamentals',
+                  createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+                  is_public: true,
+                  questions: [],
+                  ownerUsername: 'testuser',
+                  last_accessed: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+                }
+              ],
+            };
+          }
+          
+          throw new Error(`Failed to fetch quiz history: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        return {
+          count: data.count,
+          next: data.next,
+          previous: data.previous,
+          results: data.results.map((quiz: any) => ({
+            id: quiz.id,
+            title: quiz.title,
+            description: quiz.description,
+            createdAt: quiz.created_at,
+            is_public: quiz.is_public,
+            questions: [], // Questions are loaded separately
+            ownerUsername: quiz.owner_username,
+            last_accessed: quiz.last_accessed,
+          })),
+        };
+      } catch (error) {
+        console.error('Error fetching quiz history:', error);
+        return {
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        };
       }
     }
   }
