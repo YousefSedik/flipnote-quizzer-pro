@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Quiz, Question, PaginationParams } from '../types/quiz';
+import { Quiz, Question, PaginationParams, CreateQuizParams } from '../types/quiz';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -60,6 +60,8 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
       }
       return failureCount < 2; // standard retry logic
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Manual handling of token refresh and refetch
@@ -98,7 +100,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
 
   // Create quiz mutation with token refresh handling
   const createQuizMutation = useMutation({
-    mutationFn: async (quizData: { title: string; description: string; is_public: boolean }) => {
+    mutationFn: async (quizData: CreateQuizParams) => {
       try {
         return await api.quiz.create(quizData);
       } catch (error) {

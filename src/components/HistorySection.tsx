@@ -15,13 +15,14 @@ const HistorySection: React.FC = () => {
     queryFn: () => api.quiz.getHistory(),
     retry: 1,
     retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const history = historyData?.results || [];
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-3xl mx-auto">
+      <div className="w-full mx-auto">
         <div className="flex items-center gap-2 mb-4">
           <History className="h-5 w-5" />
           <h2 className="text-2xl font-bold">Recent Activity</h2>
@@ -43,7 +44,7 @@ const HistorySection: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full max-w-3xl mx-auto text-center">
+      <div className="w-full mx-auto text-center">
         <div className="flex items-center gap-2 mb-4 justify-center">
           <History className="h-5 w-5" />
           <h2 className="text-2xl font-bold">Recent Activity</h2>
@@ -56,7 +57,7 @@ const HistorySection: React.FC = () => {
 
   if (history.length === 0) {
     return (
-      <div className="w-full max-w-3xl mx-auto">
+      <div className="w-full mx-auto">
         <div className="flex items-center gap-2 mb-4">
           <History className="h-5 w-5" />
           <h2 className="text-2xl font-bold">Recent Activity</h2>
@@ -73,7 +74,7 @@ const HistorySection: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full mx-auto">
       <div className="flex items-center gap-2 mb-4">
         <History className="h-5 w-5" />
         <h2 className="text-2xl font-bold">Recent Activity</h2>

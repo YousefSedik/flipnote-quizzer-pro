@@ -17,7 +17,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({ onSearch }) => {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto mb-8">
+    <div className="w-full mx-auto mb-8">
       <h2 className="text-2xl font-bold mb-4">Search Quizzes</h2>
       <form onSubmit={handleSearch} className="flex gap-2">
         <Input

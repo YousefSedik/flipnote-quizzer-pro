@@ -32,3 +32,10 @@ export interface PaginationParams {
   totalItems: number;
   totalPages: number;
 }
+
+// Add this type to fix the create quiz API
+export interface CreateQuizParams {
+  title: string;
+  description: string;
+  is_public: boolean;
+}

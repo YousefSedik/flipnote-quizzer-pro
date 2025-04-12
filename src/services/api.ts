@@ -1,8 +1,8 @@
-import { Quiz, Question } from '@/types/quiz';
+import { Quiz, Question, CreateQuizParams } from '@/types/quiz';
 import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://flipnote-quizzer-backend.azurewebsites.net' // Replace with your production API URL
+  ? 'https://flipnote-quizzer-backend.azurewebsites.net' 
   : 'http://localhost:8000';
 
 const getAuthData = () => {
@@ -264,7 +264,7 @@ export const api = {
       };
     },
     
-    create: async (quiz: Omit<Quiz, 'id' | 'createdAt' | 'questions'>) => {
+    create: async (quiz: CreateQuizParams): Promise<Quiz> => {
       const response = await fetch(`${API_URL}/quizzes`, {
         method: 'POST',
         headers: {

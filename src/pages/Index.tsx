@@ -26,6 +26,8 @@ const Index = () => {
     // Only fetch if API is available, avoiding unnecessary API calls during development
     retry: 1,
     retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const publicQuizzes = publicQuizzesData?.results || [];
