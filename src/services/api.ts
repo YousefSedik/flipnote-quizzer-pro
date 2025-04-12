@@ -59,11 +59,11 @@ const refreshAccessToken = async (): Promise<string | null> => {
       },
       body: JSON.stringify({ refresh }),
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to refresh token');
     }
-    
+
     const data: RefreshResponse = await response.json();
     updateTokensInStorage(data.access);
     return data.access;
@@ -83,13 +83,13 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
   if (response.status === 401) {
     const newAccessToken = await refreshAccessToken();
-    
+
     if (newAccessToken) {
       const updatedHeaders = {
         ...options.headers,
         'Authorization': `Bearer ${newAccessToken}`,
       };
-      
+
       response = await fetch(url, { ...options, headers: updatedHeaders });
     }
   }
@@ -114,38 +114,38 @@ export const api = {
         },
         body: JSON.stringify({ email, password }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Login failed');
       }
-      
+
       return response.json();
     },
-    
+
     register: async (name: string, email: string, password: string) => {
       const response = await fetch(`${API_URL}/auth/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          email, 
+        body: JSON.stringify({
+          email,
           password,
           password2: password,
           first_name: name || '',
           last_name: ''
         }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Registration failed');
       }
-      
+
       return response.json();
     },
-    
+
     refreshToken: async (refresh: string): Promise<RefreshResponse> => {
       const response = await fetch(`${API_URL}/auth/token/refresh/`, {
         method: 'POST',
@@ -154,17 +154,17 @@ export const api = {
         },
         body: JSON.stringify({ refresh }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to refresh token');
       }
-      
+
       return response.json();
     },
-    
+
     getProfile: async (tokens?: { access: string, refresh: string }): Promise<ProfileResponse> => {
       let response;
-      
+
       if (tokens?.access) {
         response = await fetch(`${API_URL}/auth/profile/`, {
           headers: {
@@ -179,23 +179,23 @@ export const api = {
           },
         });
       }
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch user profile');
       }
-      
+
       return response.json();
     }
   },
-  
+
   quiz: {
     getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Quiz>> => {
       const response = await fetchWithAuth(`${API_URL}/quizzes?page=${page}&page_size=${pageSize}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch quizzes: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       return {
         count: data.count,
@@ -212,26 +212,26 @@ export const api = {
         })),
       };
     },
-    
+
     getOne: async (id: string) => {
       const response = await fetchWithAuth(`${API_URL}/quizzes/${id}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch quiz');
       }
-      
+
       const quiz = await response.json();
-      
+
       const questionsResponse = await fetch(`${API_URL}/questions/${id}`, {
         headers: authHeaders(),
       });
-      
+
       if (!questionsResponse.ok) {
         throw new Error('Failed to fetch quiz questions');
       }
-      
+
       const questionsData = await questionsResponse.json();
-      
+
       const mcqQuestions = (questionsData.mcq_questions || []).map((q: any) => ({
         id: q.id.toString(),
         text: q.text,
@@ -243,16 +243,16 @@ export const api = {
           isCorrect: choice === q.correct_answer,
         })),
       }));
-      
+
       const writtenQuestions = (questionsData.written_questions || []).map((q: any) => ({
         id: q.id.toString(),
         text: q.text,
         type: 'written' as const,
         answer: q.answer,
       }));
-      
+
       const quizData = questionsData.quiz || quiz;
-      
+
       return {
         id: quizData.id,
         title: quizData.title,
@@ -273,14 +273,14 @@ export const api = {
         },
         body: JSON.stringify(quiz),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create quiz');
       }
-      
+
       return response.json();
     },
-    
+
     update: async (id: string, quiz: Partial<Quiz>) => {
       const response = await fetch(`${API_URL}/quizzes/${id}`, {
         method: 'PUT',
@@ -290,26 +290,26 @@ export const api = {
         },
         body: JSON.stringify(quiz),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update quiz');
       }
-      
+
       return response.json();
     },
-    
+
     delete: async (id: string) => {
       const response = await fetch(`${API_URL}/quizzes/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to delete quiz');
       }
       return response;
     },
-    
+
     questions: {
       create: async (quizId: string, question: Omit<Question, 'id'>) => {
         const response = await fetch(`${API_URL}/quizzes/${quizId}/questions`, {
@@ -320,14 +320,14 @@ export const api = {
           },
           body: JSON.stringify(question),
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to create question');
         }
-        
+
         return response.json();
       },
-      
+
       update: async (quizId: string, questionId: string, question: Partial<Question>) => {
         const response = await fetch(`${API_URL}/quizzes/${quizId}/questions/${questionId}`, {
           method: 'PUT',
@@ -337,33 +337,33 @@ export const api = {
           },
           body: JSON.stringify(question),
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to update question');
         }
-        
+
         return response.json();
       },
-      
+
       delete: async (quizId: string, questionId: string) => {
         const response = await fetch(`${API_URL}/quizzes/${quizId}/questions/${questionId}`, {
           method: 'DELETE',
           headers: authHeaders(),
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to delete question');
         }
-        
+
         return response.json();
       },
     },
-    
+
     public: {
       getAll: async (page = 1, pageSize = 6): Promise<PaginatedResponse<Quiz>> => {
         try {
           const response = await fetch(`${API_URL}/quizzes/public?page=${page}&page_size=${pageSize}`);
-          
+
           if (!response.ok) {
             if (process.env.NODE_ENV !== 'production') {
               console.warn('Using mock data for public quizzes (API unavailable)');
@@ -402,10 +402,10 @@ export const api = {
                 ],
               };
             }
-            
+
             throw new Error(`Failed to fetch public quizzes: ${response.status} ${response.statusText}`);
           }
-          
+
           const data = await response.json();
           return {
             count: data.count,
@@ -431,25 +431,25 @@ export const api = {
           };
         }
       },
-      
+
       getOne: async (id: string) => {
         try {
           const response = await fetch(`${API_URL}/quizzes/${id}`);
-          
+
           if (!response.ok) {
             throw new Error(`Failed to fetch public quiz: ${response.status} ${response.statusText}`);
           }
-          
+
           const quiz = await response.json();
-          
+
           const questionsResponse = await fetch(`${API_URL}/questions/${id}`);
-          
+
           if (!questionsResponse.ok) {
             throw new Error('Failed to fetch quiz questions');
           }
-          
+
           const questionsData = await questionsResponse.json();
-          
+
           const mcqQuestions = (questionsData.mcq_questions || []).map((q: any) => ({
             id: q.id.toString(),
             text: q.text,
@@ -461,16 +461,16 @@ export const api = {
               isCorrect: choice === q.correct_answer,
             })),
           }));
-          
+
           const writtenQuestions = (questionsData.written_questions || []).map((q: any) => ({
             id: q.id.toString(),
             text: q.text,
             type: 'written' as const,
             answer: q.answer,
           }));
-          
+
           const quizData = questionsData.quiz || quiz;
-          
+
           return {
             id: quizData.id,
             title: quizData.title,
@@ -486,11 +486,11 @@ export const api = {
         }
       }
     },
-    
+
     getHistory: async (): Promise<PaginatedResponse<Quiz>> => {
       try {
         const response = await fetchWithAuth(`${API_URL}/quizzes/history`);
-        
+
         if (!response.ok) {
           if (process.env.NODE_ENV !== 'production') {
             console.warn('Using mock data for quiz history (API unavailable)');
@@ -532,16 +532,17 @@ export const api = {
               ],
             };
           }
-          
+
           throw new Error(`Failed to fetch quiz history: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
+        console.log(data.results)
         return {
-          count: data.count,
-          next: data.next,
-          previous: data.previous,
-          results: data.results.map((quiz: any) => ({
+          count: data.length,
+          next: null, // No pagination info in your data
+          previous: null, // No pagination info in your data
+          results: data.map((quiz: any) => ({
             id: quiz.id,
             title: quiz.title,
             description: quiz.description,
@@ -549,9 +550,10 @@ export const api = {
             is_public: quiz.is_public,
             questions: [], // Questions are loaded separately
             ownerUsername: quiz.owner_username,
-            last_accessed: quiz.last_accessed,
+            // last_accessed: quiz.last_accessed, // Uncomment if needed
           })),
         };
+
       } catch (error) {
         console.error('Error fetching quiz history:', error);
         return {
