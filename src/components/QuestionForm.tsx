@@ -100,7 +100,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
           text: questionText,
           type: 'mcq',
           options: optionTexts,
-          answer: correctAnswer
+          correct_answer: correctAnswer
         });
       }
     } else {
