@@ -457,39 +457,6 @@ export const api = {
           const response = await fetch(`${API_URL}/quizzes/${id}`);
           
           if (!response.ok) {
-            // For demo/development purposes, return mock data if API is unavailable
-            if (process.env.NODE_ENV !== 'production') {
-              console.warn('Using mock data for public quiz (API unavailable)');
-              return {
-                id: id,
-                title: 'Sample Quiz',
-                description: 'This is a sample quiz for testing',
-                createdAt: new Date().toISOString(),
-                is_public: true,
-                questions: [
-                  {
-                    id: 'mock-q1',
-                    text: 'What is the capital of France?',
-                    type: 'mcq',
-                    answer: 'Paris',
-                    options: [
-                      { id: '1', text: 'London', isCorrect: false },
-                      { id: '2', text: 'Paris', isCorrect: true },
-                      { id: '3', text: 'Berlin', isCorrect: false },
-                      { id: '4', text: 'Madrid', isCorrect: false },
-                    ],
-                  },
-                  {
-                    id: 'mock-q2',
-                    text: 'What is 2+2?',
-                    type: 'written',
-                    answer: '4',
-                  },
-                ],
-                ownerUsername: 'testuser',
-              };
-            }
-            
             throw new Error(`Failed to fetch public quiz: ${response.status} ${response.statusText}`);
           }
           
