@@ -7,7 +7,7 @@ import { api } from '@/services/api';
 interface AuthContextProps {
   authState: AuthState;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string, name?: string) => Promise<void>;
+  register: (username: string, email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<string | null>;
 }
@@ -189,12 +189,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const register = async (email: string, password: string, name?: string) => {
+  const register = async (username: string, email: string, password: string, name?: string) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       
       // Call register endpoint
-      await api.auth.register(name || '', email, password);
+      await api.auth.register(username, email, password, name || '');
       
       // After registration, login the user to get tokens
       await login(email, password);

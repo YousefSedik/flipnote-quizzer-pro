@@ -86,7 +86,7 @@ const HistorySection: React.FC = () => {
               <div className="flex justify-between items-start">
                 <CardTitle className="text-base font-medium">{item.title}</CardTitle>
                 <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(item.last_accessed), { addSuffix: true })}
+                  {/* {formatDistanceToNow(new Date(item.last_accessed), { addSuffix: true })} */}
                 </span>
               </div>
             </CardHeader>

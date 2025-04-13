@@ -123,13 +123,14 @@ export const api = {
       return response.json();
     },
 
-    register: async (name: string, email: string, password: string) => {
+    register: async (username: string, email: string, password: string, name?: string) => {
       const response = await fetch(`${API_URL}/auth/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          username,
           email,
           password,
           password2: password,

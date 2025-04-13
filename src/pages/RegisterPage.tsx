@@ -41,7 +41,7 @@ const RegisterPage: React.FC = () => {
   });
 
   const onSubmit = async (values: RegisterValues) => {
-    await register(values.email, values.username, values.password, values.name);
+    await register(values.username, values.email, values.password, values.name);
   };
 
   React.useEffect(() => {
