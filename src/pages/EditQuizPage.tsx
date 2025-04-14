@@ -280,10 +280,10 @@ const EditQuizPage: React.FC = () => {
                   Upload PDF
                 </Button>
                 
-                <Button variant="outline" onClick={() => setIsBookUploaderOpen(true)}>
+                {/* <Button variant="outline" onClick={() => setIsBookUploaderOpen(true)}>
                   <Book className="mr-2 h-4 w-4" />
                   Upload Book
-                </Button>
+                </Button> */}
               </div>
             </div>
             
@@ -413,12 +413,12 @@ const EditQuizPage: React.FC = () => {
             </DialogContent>
           </Dialog>
           
-          <Dialog open={isBookUploaderOpen} onOpenChange={setIsBookUploaderOpen}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
+          {/* <Dialog open={isBookUploaderOpen} onOpenChange={setIsBookUploaderOpen}>
+            <DialogContent className="sm:max-w-md"> */}
+              {/* <DialogHeader>
                 <DialogTitle>Upload Book to Generate Questions</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
+              </DialogHeader> */}
+              {/* <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Upload a book file (PDF, EPUB, etc). Our system will analyze the content and generate questions automatically.
                 </p>
@@ -434,8 +434,8 @@ const EditQuizPage: React.FC = () => {
                     onChange={(e) => handleFileUpload(e, 'book')}
                     disabled={isUploading}
                   />
-                </div>
-                <div className="flex justify-end">
+                </div> */}
+                {/* <div className="flex justify-end">
                   <Button 
                     variant="outline" 
                     onClick={() => setIsBookUploaderOpen(false)}
@@ -446,7 +446,7 @@ const EditQuizPage: React.FC = () => {
                 </div>
               </div>
             </DialogContent>
-          </Dialog>
+          </Dialog> */}
           
           <Dialog 
             open={isReviewingQuestions} 
