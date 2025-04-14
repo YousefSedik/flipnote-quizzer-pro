@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { useQuizContext } from "@/context/QuizContext";
@@ -105,11 +106,9 @@ const EditQuizPage: React.FC = () => {
       formData.append("type", type);
 
       if (type === "pdf") {
-        const apiUrl = `${
-          process.env.NODE_ENV === "production"
-            ? "https://flipnote-quizzer-backend.azurewebsites.net"
-            : "http://localhost:8000"
-        }/extract-questions";
+        const apiUrl = process.env.NODE_ENV === "production"
+          ? "https://flipnote-quizzer-backend.azurewebsites.net/extract-questions"
+          : "http://localhost:8000/extract-questions";
 
         const response = await fetch(apiUrl, {
           method: "POST",
@@ -120,7 +119,7 @@ const EditQuizPage: React.FC = () => {
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to extract questions: ${response.status}`);
+          throw new Error("Failed to extract questions: " + response.status);
         }
 
         const extractedData = await response.json();
@@ -132,7 +131,7 @@ const EditQuizPage: React.FC = () => {
 
           toast({
             title: "Success",
-            description: `${extractedData.questions.length} questions extracted. Please review them before adding.`,
+            description: extractedData.questions.length + " questions extracted. Please review them before adding.",
           });
         } else {
           toast({
@@ -143,13 +142,13 @@ const EditQuizPage: React.FC = () => {
       } else {
         const mockQuestions = [
           {
-            id: `temp-${Date.now()}-1`,
+            id: "temp-" + Date.now() + "-1",
             text: "Who is the main character in this book?",
             type: "written" as const,
             answer: "Character name extracted from book",
           },
           {
-            id: `temp-${Date.now()}-2`,
+            id: "temp-" + Date.now() + "-2",
             text: "What is the setting of this book?",
             type: "mcq" as const,
             answer: "Setting B",
@@ -167,7 +166,7 @@ const EditQuizPage: React.FC = () => {
 
         toast({
           title: "Success",
-          description: `${mockQuestions.length} questions generated. Please review them before adding.`,
+          description: mockQuestions.length + " questions generated. Please review them before adding.",
         });
       }
     } catch (error) {
@@ -202,11 +201,9 @@ const EditQuizPage: React.FC = () => {
     try {
       setIsUploading(true);
 
-      const apiUrl = `${
-        process.env.NODE_ENV === "production"
-          ? "https://flipnote-quizzer-backend.azurewebsites.net"
-          : "http://localhost:8000"
-      }/extract-questions";
+      const apiUrl = process.env.NODE_ENV === "production"
+        ? "https://flipnote-quizzer-backend.azurewebsites.net/extract-questions"
+        : "http://localhost:8000/extract-questions";
 
       const formData = new FormData();
       formData.append("text", questionText);
@@ -222,7 +219,7 @@ const EditQuizPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to extract questions: ${response.status}`);
+        throw new Error("Failed to extract questions: " + response.status);
       }
 
       const extractedData = await response.json();
@@ -234,7 +231,7 @@ const EditQuizPage: React.FC = () => {
 
         toast({
           title: "Success",
-          description: `${extractedData.questions.length} questions extracted. Please review them before adding.`,
+          description: extractedData.questions.length + " questions extracted. Please review them before adding.",
         });
       } else {
         toast({
