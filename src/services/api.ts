@@ -386,7 +386,7 @@ export const api = {
           throw new Error('Failed to delete question');
         }
 
-        return response.json();
+        return response;
       },
     },
 
