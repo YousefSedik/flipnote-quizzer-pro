@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Quiz, Question, PaginationParams, CreateQuizParams } from '../types/quiz';
 import { toast } from '@/hooks/use-toast';
@@ -41,7 +40,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   const [page, setPage] = useState(1);
   const pageSize = 10;
   
-  // Fetch quizzes only when authenticated
   const { 
     data: quizzesData, 
     error, 
@@ -52,19 +50,16 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     queryFn: () => api.quiz.getAll(page, pageSize),
     enabled: !!authState.isAuthenticated && !!authState.tokens?.access,
     retry: (failureCount, error) => {
-      // If we get a 401 error, try refreshing the token outside this function
       if (failureCount < 2 && error instanceof Error && error.message.includes('401')) {
-        // Trigger token refresh - we don't await here
         refreshToken();
-        return true; // retry
+        return true;
       }
-      return failureCount < 2; // standard retry logic
+      return failureCount < 2;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
-  // Manual handling of token refresh and refetch
   useEffect(() => {
     const handleTokenRefresh = async () => {
       if (error instanceof Error && error.message.includes('401')) {
@@ -80,7 +75,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     }
   }, [error, refreshToken, refetch]);
 
-  // Refetch quizzes when auth state changes
   useEffect(() => {
     if (authState.isAuthenticated && authState.tokens?.access) {
       refetch();
@@ -98,13 +92,11 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     totalPages,
   };
 
-  // Create quiz mutation with token refresh handling
   const createQuizMutation = useMutation({
     mutationFn: async (quizData: CreateQuizParams) => {
       try {
         return await api.quiz.create(quizData);
       } catch (error) {
-        // If it's an auth error, try refreshing token and retry
         if (error instanceof Error && error.message.includes('401')) {
           await refreshToken();
           return api.quiz.create(quizData);
@@ -128,7 +120,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     }
   });
 
-  // Update quiz mutation
   const updateQuizMutation = useMutation({
     mutationFn: (quiz: Quiz) => {
       return api.quiz.update(quiz.id, quiz);
@@ -149,7 +140,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     }
   });
 
-  // Delete quiz mutation
   const deleteQuizMutation = useMutation({
     mutationFn: (id: string) => {
       return api.quiz.delete(id);
@@ -170,7 +160,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     }
   });
 
-  // Add question mutation
   const addQuestionMutation = useMutation({
     mutationFn: ({ quizId, question }: { quizId: string; question: Omit<Question, 'id'> }) => {
       return api.quiz.questions.create(quizId, question);
@@ -191,7 +180,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     }
   });
 
-  // Update question mutation
   const updateQuestionMutation = useMutation({
     mutationFn: ({ quizId, question }: { quizId: string; question: Question }) => {
       return api.quiz.questions.update(quizId, question.id, question);
@@ -212,10 +200,9 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     }
   });
 
-  // Delete question mutation
   const deleteQuestionMutation = useMutation({
-    mutationFn: ({ quizId, questionId }: { quizId: string; questionId: string }) => {
-      return api.quiz.questions.delete(quizId, questionId);
+    mutationFn: ({ quizId, questionId, questionType }: { quizId: string; questionId: string; questionType: string }) => {
+      return api.quiz.questions.delete(quizId, questionId, questionType);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', variables.quizId] });
@@ -254,7 +241,21 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   };
 
   const deleteQuestion = async (quizId: string, questionId: string): Promise<void> => {
-    await deleteQuestionMutation.mutateAsync({ quizId, questionId });
+    const quiz = quizzes.find(q => q.id === quizId);
+    if (!quiz) {
+      throw new Error('Quiz not found');
+    }
+    
+    const question = quiz.questions.find(q => q.id === questionId);
+    if (!question) {
+      throw new Error('Question not found');
+    }
+    
+    await deleteQuestionMutation.mutateAsync({ 
+      quizId, 
+      questionId,
+      questionType: question.type
+    });
   };
 
   const getQuiz = (id: string) => {

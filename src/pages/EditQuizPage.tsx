@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useQuizContext } from '@/context/QuizContext';
@@ -24,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Question } from '@/types/quiz';
+import { Question, Option } from '@/types/quiz';
 
 const EditQuizPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -62,7 +61,6 @@ const EditQuizPage: React.FC = () => {
       return;
     }
 
-    // Validate file type
     if (type === 'pdf' && file.type !== 'application/pdf') {
       toast({
         title: "Error",
@@ -75,20 +73,11 @@ const EditQuizPage: React.FC = () => {
     try {
       setIsUploading(true);
       
-      // Create FormData to send file to backend
       const formData = new FormData();
       formData.append('file', file);
       formData.append('quizId', id);
       formData.append('type', type);
 
-      // Simulate API call for file processing
-      // In a real implementation, this would be:
-      // const response = await api.quiz.processFile(id, formData);
-      
-      // For now, let's simulate a response after a delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Mock generated questions based on upload type
       let mockQuestions: Question[] = [];
       
       if (type === 'pdf') {
@@ -137,7 +126,6 @@ const EditQuizPage: React.FC = () => {
       setIsReviewingQuestions(true);
       setCurrentReviewQuestion(0);
       
-      // Close the upload dialogs
       setIsPdfUploaderOpen(false);
       setIsBookUploaderOpen(false);
       
@@ -154,7 +142,6 @@ const EditQuizPage: React.FC = () => {
     } finally {
       setIsUploading(false);
       
-      // Reset the file input
       if (event.target) {
         event.target.value = '';
       }
@@ -164,9 +151,7 @@ const EditQuizPage: React.FC = () => {
   const handleSaveGeneratedQuestion = (question: Question) => {
     if (!id) return;
     
-    // Add the current question to the quiz
     if (question.type === 'mcq' && question.options) {
-      // For MCQ questions, format as required by the backend
       const correctOption = question.options.find(o => o.isCorrect);
       const correctAnswer = correctOption ? correctOption.text : '';
       const optionTexts = question.options.map(o => o.text);
@@ -189,7 +174,6 @@ const EditQuizPage: React.FC = () => {
         });
       });
     } else {
-      // For written questions
       api.quiz.questions.create(id, {
         text: question.text,
         type: 'written',
@@ -208,7 +192,6 @@ const EditQuizPage: React.FC = () => {
       });
     }
     
-    // Move to next question or close review
     if (currentReviewQuestion < generatedQuestions.length - 1) {
       setCurrentReviewQuestion(currentReviewQuestion + 1);
     } else {
@@ -218,7 +201,6 @@ const EditQuizPage: React.FC = () => {
   };
 
   const handleSkipQuestion = () => {
-    // Move to next question or close review
     if (currentReviewQuestion < generatedQuestions.length - 1) {
       setCurrentReviewQuestion(currentReviewQuestion + 1);
     } else {
@@ -367,7 +349,6 @@ const EditQuizPage: React.FC = () => {
             )}
           </div>
           
-          {/* Add Question Dialog */}
           <Dialog open={isAddingQuestion} onOpenChange={setIsAddingQuestion}>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
@@ -380,7 +361,6 @@ const EditQuizPage: React.FC = () => {
             </DialogContent>
           </Dialog>
           
-          {/* Edit Question Dialog */}
           <Dialog 
             open={!!editingQuestion} 
             onOpenChange={(open) => !open && setEditingQuestion(null)}
@@ -399,7 +379,6 @@ const EditQuizPage: React.FC = () => {
             </DialogContent>
           </Dialog>
           
-          {/* PDF Uploader Dialog */}
           <Dialog open={isPdfUploaderOpen} onOpenChange={setIsPdfUploaderOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
@@ -435,7 +414,6 @@ const EditQuizPage: React.FC = () => {
             </DialogContent>
           </Dialog>
           
-          {/* Book Uploader Dialog */}
           <Dialog open={isBookUploaderOpen} onOpenChange={setIsBookUploaderOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
@@ -471,7 +449,6 @@ const EditQuizPage: React.FC = () => {
             </DialogContent>
           </Dialog>
           
-          {/* Question Review Dialog */}
           <Dialog 
             open={isReviewingQuestions} 
             onOpenChange={(open) => !open && setIsReviewingQuestions(false)}

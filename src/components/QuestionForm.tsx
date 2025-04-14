@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,22 +85,21 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
     if (questionType === 'mcq') {
       const correctOption = options.find(o => o.isCorrect);
       const correctAnswer = correctOption ? correctOption.text : '';
-      const optionTexts = options.map(o => o.text);
       
       if (question) {
         updateQuestion(quizId, {
           id: question.id,
           text: questionText,
           type: 'mcq',
-          options: optionTexts,
-          answer: correctAnswer
+          answer: correctAnswer,
+          options: options
         });
       } else {
         addQuestion(quizId, {
           text: questionText,
           type: 'mcq',
-          options: optionTexts,
-          correct_answer: correctAnswer
+          correct_answer: correctAnswer,
+          options: options.map(o => o.text)
         });
       }
     } else {

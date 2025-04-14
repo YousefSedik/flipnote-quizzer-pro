@@ -1,3 +1,4 @@
+
 import { Quiz, Question, CreateQuizParams } from '@/types/quiz';
 import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
@@ -330,7 +331,10 @@ export const api = {
       },
 
       update: async (quizId: string, questionId: string, question: Partial<Question>) => {
-        const response = await fetch(`${API_URL}/quizzes/${quizId}/questions/${questionId}`, {
+        // Determine question type for the endpoint
+        const qtype = question.type === 'mcq' ? 'mcq' : 'written';
+        
+        const response = await fetch(`${API_URL}/quizzes/${quizId}/questions/${questionId}/${qtype}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -346,8 +350,11 @@ export const api = {
         return response.json();
       },
 
-      delete: async (quizId: string, questionId: string) => {
-        const response = await fetch(`${API_URL}/quizzes/${quizId}/questions/${questionId}`, {
+      delete: async (quizId: string, questionId: string, questionType: string) => {
+        // Use the question type in the endpoint
+        const qtype = questionType === 'mcq' ? 'mcq' : 'written';
+        
+        const response = await fetch(`${API_URL}/quizzes/${quizId}/questions/${questionId}/${qtype}`, {
           method: 'DELETE',
           headers: authHeaders(),
         });
