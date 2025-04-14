@@ -308,13 +308,13 @@ const EditQuizPage: React.FC = () => {
                           </p>
                         </div>
                         <div className="flex gap-2 self-end sm:self-auto">
-                          <Button 
-                            variant="outline" 
+                          {/* <Button  */}
+                            {/* variant="outline" 
                             size="icon"
                             onClick={() => setEditingQuestion(question.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          > */}
+                            {/* <Edit className="h-4 w-4" /> */}
+                          {/* </Button> */}
                           
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -360,7 +360,7 @@ const EditQuizPage: React.FC = () => {
             </DialogContent>
           </Dialog>
           
-          <Dialog 
+          {/* <Dialog 
             open={!!editingQuestion} 
             onOpenChange={(open) => !open && setEditingQuestion(null)}
           >
@@ -377,7 +377,7 @@ const EditQuizPage: React.FC = () => {
               )}
             </DialogContent>
           </Dialog>
-          
+           */}
           <Dialog open={isPdfUploaderOpen} onOpenChange={setIsPdfUploaderOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
