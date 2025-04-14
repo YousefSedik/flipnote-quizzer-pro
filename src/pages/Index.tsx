@@ -19,6 +19,11 @@ const Index: React.FC = () => {
     gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
   });
 
+  const handleSearch = (query: string) => {
+    console.log('Searching for:', query);
+    // Implement search functionality here
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -26,8 +31,8 @@ const Index: React.FC = () => {
       <main className="flex-1 container mx-auto px-4 py-8">
         {authState.isAuthenticated ? (
           <div className="space-y-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <SearchSection />
+            <div className="grid grid-cols-1 gap-8">
+              <SearchSection onSearch={handleSearch} />
               <HistorySection />
             </div>
             

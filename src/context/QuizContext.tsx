@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Quiz, Question, PaginationParams, CreateQuizParams } from '../types/quiz';
 import { toast } from '@/hooks/use-toast';
@@ -241,21 +242,37 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   };
 
   const deleteQuestion = async (quizId: string, questionId: string): Promise<void> => {
-    const quiz = quizzes.find(q => q.id === quizId);
-    if (!quiz) {
-      throw new Error('Quiz not found');
+    try {
+      // Get the quiz from the cache or via an API call if needed
+      const quiz = await queryClient.fetchQuery({
+        queryKey: ['quizzes', quizId],
+        queryFn: () => api.quiz.getOne(quizId),
+        staleTime: 0 // Force fresh data
+      });
+      
+      if (!quiz) {
+        throw new Error('Quiz not found');
+      }
+      
+      const question = quiz.questions.find(q => q.id === questionId);
+      if (!question) {
+        throw new Error('Question not found');
+      }
+      
+      await deleteQuestionMutation.mutateAsync({ 
+        quizId, 
+        questionId,
+        questionType: question.type
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete question",
+          variant: "destructive"
+        });
+      }
     }
-    
-    const question = quiz.questions.find(q => q.id === questionId);
-    if (!question) {
-      throw new Error('Question not found');
-    }
-    
-    await deleteQuestionMutation.mutateAsync({ 
-      quizId, 
-      questionId,
-      questionType: question.type
-    });
   };
 
   const getQuiz = (id: string) => {

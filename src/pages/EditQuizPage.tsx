@@ -154,13 +154,12 @@ const EditQuizPage: React.FC = () => {
     if (question.type === 'mcq' && question.options) {
       const correctOption = question.options.find(o => o.isCorrect);
       const correctAnswer = correctOption ? correctOption.text : '';
-      const optionTexts = question.options.map(o => o.text);
       
       api.quiz.questions.create(id, {
         text: question.text,
         type: 'mcq',
-        options: optionTexts,
-        correct_answer: correctAnswer
+        answer: correctAnswer,
+        options: question.options
       }).then(() => {
         toast({
           title: "Success",

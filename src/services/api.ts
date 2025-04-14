@@ -1,4 +1,3 @@
-
 import { Quiz, Question, CreateQuizParams } from '@/types/quiz';
 import { LoginResponse, RefreshResponse, ProfileResponse } from '@/types/auth';
 
@@ -314,13 +313,37 @@ export const api = {
 
     questions: {
       create: async (quizId: string, question: Omit<Question, 'id'>) => {
+        // Prepare data for API based on question type
+        let requestData;
+        
+        if (question.type === 'mcq' && question.options) {
+          // For MCQ questions, format data according to API expectations
+          const optionTexts = Array.isArray(question.options) ? 
+            question.options.map(o => typeof o === 'string' ? o : o.text) : 
+            [];
+            
+          requestData = {
+            text: question.text,
+            type: 'mcq',
+            choices: optionTexts,
+            correct_answer: question.answer
+          };
+        } else {
+          // For written questions
+          requestData = {
+            text: question.text,
+            type: 'written',
+            answer: question.answer
+          };
+        }
+        
         const response = await fetch(`${API_URL}/quizzes/${quizId}/questions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...authHeaders(),
           },
-          body: JSON.stringify(question),
+          body: JSON.stringify(requestData),
         });
 
         if (!response.ok) {

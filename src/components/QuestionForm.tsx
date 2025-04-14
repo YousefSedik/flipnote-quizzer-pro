@@ -98,8 +98,8 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
         addQuestion(quizId, {
           text: questionText,
           type: 'mcq',
-          correct_answer: correctAnswer,
-          options: options.map(o => o.text)
+          answer: correctAnswer,
+          options: options
         });
       }
     } else {
