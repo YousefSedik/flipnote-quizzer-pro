@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useQuizContext } from '@/context/QuizContext';
@@ -78,40 +79,54 @@ const EditQuizPage: React.FC = () => {
       formData.append('quizId', id);
       formData.append('type', type);
 
-      let mockQuestions: Question[] = [];
-      
       if (type === 'pdf') {
-        mockQuestions = [
-          {
-            id: `temp-${Date.now()}-1`,
-            text: "What is the main topic of the uploaded PDF?",
-            type: "written",
-            answer: "Sample answer extracted from PDF"
-          },
-          {
-            id: `temp-${Date.now()}-2`,
-            text: "Which of the following concepts was mentioned in the PDF?",
-            type: "mcq",
-            answer: "Concept B",
-            options: [
-              { id: "1", text: "Concept A", isCorrect: false },
-              { id: "2", text: "Concept B", isCorrect: true },
-              { id: "3", text: "Concept C", isCorrect: false }
-            ]
+        // Send the PDF file to the extract-questions endpoint
+        const apiUrl = `${process.env.NODE_ENV === 'production' 
+          ? 'https://flipnote-quizzer-backend.azurewebsites.net' 
+          : 'http://localhost:8000'}/extract-questions`;
+          
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            ...api.authHeaders(),
           }
-        ];
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to extract questions: ${response.status}`);
+        }
+        
+        const extractedData = await response.json();
+        
+        if (extractedData.questions && extractedData.questions.length > 0) {
+          setGeneratedQuestions(extractedData.questions);
+          setIsReviewingQuestions(true);
+          setCurrentReviewQuestion(0);
+          
+          toast({
+            title: "Success",
+            description: `${extractedData.questions.length} questions extracted. Please review them before adding.`
+          });
+        } else {
+          toast({
+            title: "Warning",
+            description: "No questions could be extracted from the PDF."
+          });
+        }
       } else {
-        mockQuestions = [
+        // Use mock data for book uploads for now
+        const mockQuestions = [
           {
             id: `temp-${Date.now()}-1`,
             text: "Who is the main character in this book?",
-            type: "written",
+            type: 'written' as const,
             answer: "Character name extracted from book"
           },
           {
             id: `temp-${Date.now()}-2`,
             text: "What is the setting of this book?",
-            type: "mcq",
+            type: 'mcq' as const,
             answer: "Setting B",
             options: [
               { id: "1", text: "Setting A", isCorrect: false },
@@ -120,27 +135,27 @@ const EditQuizPage: React.FC = () => {
             ]
           }
         ];
+        
+        setGeneratedQuestions(mockQuestions);
+        setIsReviewingQuestions(true);
+        setCurrentReviewQuestion(0);
+        
+        toast({
+          title: "Success",
+          description: `${mockQuestions.length} questions generated. Please review them before adding.`
+        });
       }
-
-      setGeneratedQuestions(mockQuestions);
-      setIsReviewingQuestions(true);
-      setCurrentReviewQuestion(0);
-      
-      setIsPdfUploaderOpen(false);
-      setIsBookUploaderOpen(false);
-      
-      toast({
-        title: "Success",
-        description: `${mockQuestions.length} questions generated. Please review them before adding.`
-      });
     } catch (error) {
+      console.error('Error processing file:', error);
       toast({
         title: "Error",
-        description: "Failed to process file",
+        description: error instanceof Error ? error.message : "Failed to process file",
         variant: "destructive"
       });
     } finally {
       setIsUploading(false);
+      setIsPdfUploaderOpen(false);
+      setIsBookUploaderOpen(false);
       
       if (event.target) {
         event.target.value = '';

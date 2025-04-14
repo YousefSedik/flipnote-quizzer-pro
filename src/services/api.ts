@@ -105,6 +105,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const api = {
+  authHeaders,
   auth: {
     login: async (email: string, password: string): Promise<LoginResponse> => {
       const response = await fetch(`${API_URL}/auth/login/`, {
@@ -388,6 +389,24 @@ export const api = {
 
         return response;
       },
+    },
+
+    extractQuestions: async (file: File, quizId: string) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('quizId', quizId);
+      
+      const response = await fetch(`${API_URL}/extract-questions`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to extract questions from PDF');
+      }
+
+      return response.json();
     },
 
     public: {
