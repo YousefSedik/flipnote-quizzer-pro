@@ -13,12 +13,14 @@ import {
   ArrowLeft,
   FileText,
   Book,
+  AlignLeft,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -36,6 +38,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { Question, Option } from "@/types/quiz";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 const EditQuizPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -56,11 +60,13 @@ const EditQuizPage: React.FC = () => {
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [isPdfUploaderOpen, setIsPdfUploaderOpen] = useState(false);
+  const [isTextUploaderOpen, setIsTextUploaderOpen] = useState(false);
   const [isBookUploaderOpen, setIsBookUploaderOpen] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
   const [isReviewingQuestions, setIsReviewingQuestions] = useState(false);
   const [currentReviewQuestion, setCurrentReviewQuestion] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [questionText, setQuestionText] = useState("");
 
   const handleQuestionFormComplete = () => {
     setIsAddingQuestion(false);
@@ -99,12 +105,11 @@ const EditQuizPage: React.FC = () => {
       formData.append("type", type);
 
       if (type === "pdf") {
-        // Send the PDF file to the extract-questions endpoint
         const apiUrl = `${
           process.env.NODE_ENV === "production"
             ? "https://flipnote-quizzer-backend.azurewebsites.net"
             : "http://localhost:8000"
-        }/extract-questions`;
+        }/extract-questions";
 
         const response = await fetch(apiUrl, {
           method: "POST",
@@ -136,7 +141,6 @@ const EditQuizPage: React.FC = () => {
           });
         }
       } else {
-        // Use mock data for book uploads for now
         const mockQuestions = [
           {
             id: `temp-${Date.now()}-1`,
@@ -182,6 +186,74 @@ const EditQuizPage: React.FC = () => {
       if (event.target) {
         event.target.value = "";
       }
+    }
+  };
+
+  const handleTextSubmit = async () => {
+    if (!id || !questionText.trim()) {
+      toast({
+        title: "Error",
+        description: "No text entered or invalid quiz ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+
+      const apiUrl = `${
+        process.env.NODE_ENV === "production"
+          ? "https://flipnote-quizzer-backend.azurewebsites.net"
+          : "http://localhost:8000"
+      }/extract-questions";
+
+      const formData = new FormData();
+      formData.append("text", questionText);
+      formData.append("quizId", id);
+      formData.append("type", "text");
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        body: formData,
+        headers: {
+          ...api.authHeaders(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to extract questions: ${response.status}`);
+      }
+
+      const extractedData = await response.json();
+
+      if (extractedData.questions && extractedData.questions.length > 0) {
+        setGeneratedQuestions(extractedData.questions);
+        setIsReviewingQuestions(true);
+        setCurrentReviewQuestion(0);
+
+        toast({
+          title: "Success",
+          description: `${extractedData.questions.length} questions extracted. Please review them before adding.`,
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: "No questions could be extracted from the text.",
+        });
+      }
+    } catch (error) {
+      console.error("Error processing text:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to process text",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setIsTextUploaderOpen(false);
+      setQuestionText("");
     }
   };
 
@@ -327,7 +399,15 @@ const EditQuizPage: React.FC = () => {
                   onClick={() => setIsPdfUploaderOpen(true)}
                 >
                   <FileText className="mr-2 h-4 w-4" />
-                  Upload PDF/Text with Questions{" "}
+                  Upload PDF/Text with Questions
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setIsTextUploaderOpen(true)}
+                >
+                  <AlignLeft className="mr-2 h-4 w-4" />
+                  Paste Questions Text
                 </Button>
               </div>
             </div>
@@ -359,14 +439,6 @@ const EditQuizPage: React.FC = () => {
                           </p>
                         </div>
                         <div className="flex gap-2 self-end sm:self-auto">
-                          {/* <Button  */}
-                          {/* variant="outline" 
-                            size="icon"
-                            onClick={() => setEditingQuestion(question.id)}
-                          > */}
-                          {/* <Edit className="h-4 w-4" /> */}
-                          {/* </Button> */}
-
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="outline" size="icon">
@@ -416,24 +488,6 @@ const EditQuizPage: React.FC = () => {
             </DialogContent>
           </Dialog>
 
-          {/* <Dialog 
-            open={!!editingQuestion} 
-            onOpenChange={(open) => !open && setEditingQuestion(null)}
-          >
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Edit Question</DialogTitle>
-              </DialogHeader>
-              {editingQuestion && (
-                <QuestionForm 
-                  quizId={quiz.id} 
-                  question={quiz.questions.find(q => q.id === editingQuestion)} 
-                  onComplete={handleQuestionFormComplete} 
-                />
-              )}
-            </DialogContent>
-          </Dialog>
-           */}
           <Dialog open={isPdfUploaderOpen} onOpenChange={setIsPdfUploaderOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
@@ -473,40 +527,49 @@ const EditQuizPage: React.FC = () => {
             </DialogContent>
           </Dialog>
 
-          {/* <Dialog open={isBookUploaderOpen} onOpenChange={setIsBookUploaderOpen}>
-            <DialogContent className="sm:max-w-md"> */}
-          {/* <DialogHeader>
-                <DialogTitle>Upload Book to Generate Questions</DialogTitle>
-              </DialogHeader> */}
-          {/* <div className="space-y-4">
+          <Dialog open={isTextUploaderOpen} onOpenChange={setIsTextUploaderOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Paste Questions Text</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Upload a book file (PDF, EPUB, etc). Our system will analyze the content and generate questions automatically.
+                  Paste text containing questions. Our system will automatically format and extract questions and answers.
                 </p>
-                <div className="grid w-full max-w-sm items-center gap-1.5">
-                  <label htmlFor="book-file" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Book File
+                <div className="grid w-full items-center gap-1.5">
+                  <label
+                    htmlFor="question-text"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Questions Text
                   </label>
-                  <input
-                    id="book-file"
-                    type="file"
-                    accept=".pdf,.epub,.mobi,.txt"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-foreground file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    onChange={(e) => handleFileUpload(e, 'book')}
+                  <Textarea
+                    id="question-text"
+                    placeholder="Paste your questions here..."
+                    className="min-h-[200px]"
+                    value={questionText}
+                    onChange={(e) => setQuestionText(e.target.value)}
                     disabled={isUploading}
                   />
-                </div> */}
-          {/* <div className="flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsBookUploaderOpen(false)}
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsTextUploaderOpen(false)}
                     disabled={isUploading}
                   >
                     Cancel
                   </Button>
-                </div>
+                  <Button 
+                    onClick={handleTextSubmit}
+                    disabled={isUploading || !questionText.trim()}
+                  >
+                    Extract Questions
+                  </Button>
+                </DialogFooter>
               </div>
             </DialogContent>
-          </Dialog> */}
+          </Dialog>
 
           <Dialog
             open={isReviewingQuestions}
