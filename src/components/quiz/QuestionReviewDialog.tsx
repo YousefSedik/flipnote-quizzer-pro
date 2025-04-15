@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import QuestionForm from "@/components/QuestionForm";
 import { Question } from "@/types/quiz";
+import { toast } from "@/hooks/use-toast";
 
 interface QuestionReviewDialogProps {
   isOpen: boolean;
@@ -34,8 +35,21 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
   const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
 
   if (!currentQuestion) {
+    // If there's no current question, close the dialog
+    if (isOpen) {
+      toast({
+        title: "Complete",
+        description: "All questions have been reviewed.",
+      });
+      onOpenChange(false);
+    }
     return null;
   }
+
+  const handleSave = () => {
+    // Save the current question
+    onSaveQuestion(currentQuestion);
+  };
 
   return (
     <Dialog 
@@ -55,14 +69,14 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
           <QuestionForm
             quizId={quizId}
             question={currentQuestion}
-            onComplete={() => onSaveQuestion(currentQuestion)}
+            onComplete={handleSave}
           />
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={onSkipQuestion}>
               Skip
             </Button>
-            <Button onClick={() => onSaveQuestion(currentQuestion)}>
+            <Button onClick={handleSave}>
               Save & {isLastQuestion ? "Finish" : "Next"}
             </Button>
           </div>

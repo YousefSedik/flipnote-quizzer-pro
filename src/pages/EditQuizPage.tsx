@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuizContext } from "@/context/QuizContext";
@@ -7,7 +6,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Question } from "@/types/quiz";
@@ -23,12 +22,14 @@ import { toast } from "@/hooks/use-toast";
 const EditQuizPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { deleteQuestion } = useQuizContext();
 
   const {
     data: quiz,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["quizzes", id],
     queryFn: () =>
@@ -57,59 +58,52 @@ const EditQuizPage: React.FC = () => {
     setIsAddingQuestion(false);
   };
 
-  const handleSaveGeneratedQuestion = (question: Question) => {
+  const handleSaveGeneratedQuestion = async (question: Question) => {
     if (!id) return;
 
-    if (question.type === "mcq" && question.options) {
-      const correctOption = question.options.find((o) => o.isCorrect);
-      const correctAnswer = correctOption ? correctOption.text : "";
+    try {
+      if (question.type === "mcq" && question.options) {
+        const correctOption = question.options.find((o) => o.isCorrect);
+        const correctAnswer = correctOption ? correctOption.text : "";
 
-      api.quiz.questions
-        .create(id, {
+        await api.quiz.questions.create(id, {
           text: question.text,
           type: "mcq",
           answer: correctAnswer,
           options: question.options,
-        })
-        .then(() => {
-          toast({
-            title: "Success",
-            description: "Question added to quiz",
-          });
-        })
-        .catch(() => {
-          toast({
-            title: "Error",
-            description: "Failed to add question",
-            variant: "destructive",
-          });
         });
-    } else {
-      api.quiz.questions
-        .create(id, {
+
+        toast({
+          title: "Success",
+          description: "Question added to quiz",
+        });
+      } else {
+        await api.quiz.questions.create(id, {
           text: question.text,
           type: "written",
           answer: question.answer,
-        })
-        .then(() => {
-          toast({
-            title: "Success",
-            description: "Question added to quiz",
-          });
-        })
-        .catch(() => {
-          toast({
-            title: "Error",
-            description: "Failed to add question",
-            variant: "destructive",
-          });
         });
-    }
 
-    if (currentReviewQuestion < generatedQuestions.length - 1) {
-      setCurrentReviewQuestion(currentReviewQuestion + 1);
-    } else {
-      setIsReviewingQuestions(false);
+        toast({
+          title: "Success",
+          description: "Question added to quiz",
+        });
+      }
+
+      await refetch();
+
+      if (currentReviewQuestion < generatedQuestions.length - 1) {
+        setCurrentReviewQuestion(currentReviewQuestion + 1);
+      } else {
+        setIsReviewingQuestions(false);
+      }
+    } catch (error) {
+      console.error("Error saving question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add question",
+        variant: "destructive",
+      });
     }
   };
 
