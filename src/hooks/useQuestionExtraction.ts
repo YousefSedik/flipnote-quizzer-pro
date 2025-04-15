@@ -5,6 +5,18 @@ import { Question } from "@/types/quiz";
 import { createExtractQuestionsUrl } from "@/utils/apiHelpers";
 import { api } from "@/services/api";
 
+interface ExtractQuestionResponse {
+  mcq?: {
+    text: string;
+    options: string[];
+    answer: string;
+  }[];
+  written?: {
+    text: string;
+    answer: string;
+  }[];
+}
+
 export const useQuestionExtraction = (quizId: string | undefined) => {
   const [isUploading, setIsUploading] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
@@ -58,16 +70,17 @@ export const useQuestionExtraction = (quizId: string | undefined) => {
           throw new Error("Failed to extract questions: " + response.status);
         }
 
-        const extractedData = await response.json();
+        const extractedData: ExtractQuestionResponse = await response.json();
+        const processedQuestions = processExtractedQuestions(extractedData);
 
-        if (extractedData.questions && extractedData.questions.length > 0) {
-          setGeneratedQuestions(extractedData.questions);
+        if (processedQuestions.length > 0) {
+          setGeneratedQuestions(processedQuestions);
           setIsReviewingQuestions(true);
           setCurrentReviewQuestion(0);
 
           toast({
             title: "Success",
-            description: extractedData.questions.length + " questions extracted. Please review them before adding.",
+            description: processedQuestions.length + " questions extracted. Please review them before adding.",
           });
         } else {
           toast({
@@ -154,16 +167,17 @@ export const useQuestionExtraction = (quizId: string | undefined) => {
         throw new Error("Failed to extract questions: " + response.status);
       }
 
-      const extractedData = await response.json();
+      const extractedData: ExtractQuestionResponse = await response.json();
+      const processedQuestions = processExtractedQuestions(extractedData);
 
-      if (extractedData.questions && extractedData.questions.length > 0) {
-        setGeneratedQuestions(extractedData.questions);
+      if (processedQuestions.length > 0) {
+        setGeneratedQuestions(processedQuestions);
         setIsReviewingQuestions(true);
         setCurrentReviewQuestion(0);
 
         toast({
           title: "Success",
-          description: extractedData.questions.length + " questions extracted. Please review them before adding.",
+          description: processedQuestions.length + " questions extracted. Please review them before adding.",
         });
       } else {
         toast({
@@ -183,6 +197,43 @@ export const useQuestionExtraction = (quizId: string | undefined) => {
       setIsUploading(false);
       setQuestionText("");
     }
+  };
+
+  const processExtractedQuestions = (data: ExtractQuestionResponse): Question[] => {
+    const questions: Question[] = [];
+    
+    // Process MCQ questions
+    if (data.mcq && Array.isArray(data.mcq)) {
+      data.mcq.forEach((q, index) => {
+        const options = q.options.map((opt, optIndex) => ({
+          id: optIndex.toString(),
+          text: opt,
+          isCorrect: opt === q.answer,
+        }));
+        
+        questions.push({
+          id: `temp-mcq-${Date.now()}-${index}`,
+          text: q.text,
+          type: "mcq",
+          answer: q.answer,
+          options,
+        });
+      });
+    }
+    
+    // Process written questions
+    if (data.written && Array.isArray(data.written)) {
+      data.written.forEach((q, index) => {
+        questions.push({
+          id: `temp-written-${Date.now()}-${index}`,
+          text: q.text,
+          type: "written",
+          answer: q.answer,
+        });
+      });
+    }
+    
+    return questions;
   };
 
   return {
