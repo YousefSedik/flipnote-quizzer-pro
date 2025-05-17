@@ -119,14 +119,14 @@ const EditQuizPage: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
           <div className="max-w-3xl mx-auto">
-            <Skeleton className="h-8 w-[200px] mb-6" />
-            <Skeleton className="h-[300px] w-full mb-8" />
-            <Skeleton className="h-8 w-[200px] mb-4" />
-            <div className="space-y-4">
+            <Skeleton className="h-6 sm:h-8 w-[150px] sm:w-[200px] mb-4 sm:mb-6" />
+            <Skeleton className="h-[200px] sm:h-[300px] w-full mb-6 sm:mb-8" />
+            <Skeleton className="h-6 sm:h-8 w-[150px] sm:w-[200px] mb-3 sm:mb-4" />
+            <div className="space-y-3 sm:space-y-4">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-[80px] w-full" />
+                <Skeleton key={i} className="h-[60px] sm:h-[80px] w-full" />
               ))}
             </div>
           </div>
@@ -139,11 +139,11 @@ const EditQuizPage: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-destructive mb-4">Failed to load quiz.</p>
-          <div className="flex gap-4 justify-center">
-            <Button onClick={() => window.location.reload()}>Retry</Button>
-            <Button variant="outline" onClick={() => navigate("/quizzes")}>
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 text-center">
+          <p className="text-sm sm:text-base text-destructive mb-4">Failed to load quiz.</p>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+            <Button className="h-9 sm:h-10 text-sm sm:text-base" onClick={() => window.location.reload()}>Retry</Button>
+            <Button variant="outline" className="h-9 sm:h-10 text-sm sm:text-base" onClick={() => navigate("/quizzes")}>
               Back to Quizzes
             </Button>
           </div>
@@ -155,31 +155,32 @@ const EditQuizPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-4 sm:mb-6">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(`/quiz/${id}`)}
+              className="h-8 w-8 sm:h-10 sm:w-10"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl font-bold">Edit Quiz</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Edit Quiz</h1>
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-lg font-medium mb-4">Quiz Details</h2>
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Quiz Details</h2>
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="pt-4 sm:pt-6">
                 <QuizForm quiz={quiz} />
               </CardContent>
             </Card>
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-4 flex-col sm:flex-row gap-2">
-              <h2 className="text-lg font-medium">Questions</h2>
+            <div className="flex justify-between items-center mb-3 sm:mb-4 flex-col sm:flex-row gap-2">
+              <h2 className="text-base sm:text-lg font-medium">Questions</h2>
               <QuestionActions 
                 onAddQuestion={() => setIsAddingQuestion(true)}
                 onOpenPdfUploader={() => setIsPdfUploaderOpen(true)}

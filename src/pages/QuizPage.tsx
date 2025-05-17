@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuizContext } from '@/context/QuizContext';
@@ -145,22 +144,22 @@ const QuizPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
           <div className="flex items-center gap-2 flex-wrap">
             <Link to="/quizzes">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">{quiz.title}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">{quiz.title}</h1>
             {quiz.is_public && (
-              <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+              <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
                 Public
               </span>
             )}
             {!quiz.is_public && (
-              <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
                 Private
               </span>
             )}
@@ -168,22 +167,22 @@ const QuizPage: React.FC = () => {
           <div className="flex gap-2 flex-wrap w-full sm:w-auto justify-end">
             {quiz.is_public && (
               <>
-                <Button variant="outline" size="sm" onClick={copyLinkToClipboard} title="Copy Link">
+                <Button variant="outline" size="sm" onClick={copyLinkToClipboard} title="Copy Link" className="h-8 sm:h-9">
                   <LinkIcon className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Copy Link</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={shareQuiz} title="Share Quiz">
+                <Button variant="outline" size="sm" onClick={shareQuiz} title="Share Quiz" className="h-8 sm:h-9">
                   <Share className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Share</span>
                 </Button>
               </>
             )}
-            <Button variant="outline" size="sm" onClick={shuffleQuestions}>
+            <Button variant="outline" size="sm" onClick={shuffleQuestions} className="h-8 sm:h-9">
               Shuffle
             </Button>
             {isOwner && (
               <Link to={`/quiz/${quiz.id}/edit`}>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="h-8 sm:h-9">
                   <Edit className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Edit</span>
                 </Button>
@@ -193,22 +192,22 @@ const QuizPage: React.FC = () => {
         </div>
         
         {quiz.description && (
-          <p className="text-muted-foreground mb-4">{quiz.description}</p>
+          <p className="text-sm sm:text-base text-muted-foreground mb-4">{quiz.description}</p>
         )}
         
-        <div className="flex items-center gap-1 mb-6">
+        <div className="flex items-center gap-1 mb-4 sm:mb-6">
           <User className="h-4 w-4 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Created by {quiz.ownerUsername || 'Unknown user'}
           </p>
         </div>
         
         {shuffledQuestions.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg">
-            <p className="text-muted-foreground mb-4">This quiz doesn't have any questions yet.</p>
+          <div className="text-center py-8 sm:py-12 border rounded-lg">
+            <p className="text-sm sm:text-base text-muted-foreground mb-4">This quiz doesn't have any questions yet.</p>
             {isOwner && (
               <Link to={`/quiz/${quiz.id}/edit`}>
-                <Button>
+                <Button className="h-9 sm:h-10">
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Quiz
                 </Button>
@@ -216,7 +215,7 @@ const QuizPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {shuffledQuestions.map((question) => (
               <FlipCard key={question.id} question={question} />
             ))}
