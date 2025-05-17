@@ -1,9 +1,17 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Quiz, Question, PaginationParams, CreateQuizParams } from '../types/quiz';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
+import axios, { AxiosError } from 'axios';
+
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
 
 interface QuizContextProps {
   quizzes: Quiz[];
@@ -39,7 +47,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   const { authState, refreshToken } = useAuth();
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  
+
   const { 
     data: quizzesData, 
     error, 
@@ -50,36 +58,15 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     queryFn: () => api.quiz.getAll(page, pageSize),
     enabled: !!authState.isAuthenticated && !!authState.tokens?.access,
     retry: (failureCount, error) => {
-      if (failureCount < 2 && error instanceof Error && error.message.includes('401')) {
+      if (failureCount < 2 && error instanceof AxiosError && error.response?.status === 401) {
         refreshToken();
         return true;
       }
       return failureCount < 2;
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
-
-  useEffect(() => {
-    const handleTokenRefresh = async () => {
-      if (error instanceof Error && error.message.includes('401')) {
-        const newToken = await refreshToken();
-        if (newToken) {
-          refetch();
-        }
-      }
-    };
-    
-    if (error) {
-      handleTokenRefresh();
-    }
-  }, [error, refreshToken, refetch]);
-
-  useEffect(() => {
-    if (authState.isAuthenticated && authState.tokens?.access) {
-      refetch();
-    }
-  }, [authState.isAuthenticated, authState.tokens?.access, refetch]);
 
   const quizzes = quizzesData?.results || [];
   const totalItems = quizzesData?.count || 0;
@@ -97,7 +84,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
       try {
         return await api.quiz.create(quizData);
       } catch (error) {
-        if (error instanceof Error && error.message.includes('401')) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
           await refreshToken();
           return api.quiz.create(quizData);
         }
@@ -111,18 +98,26 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         description: "Quiz created successfully"
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create quiz",
+        description: error instanceof Error ? error.message : "Failed to create quiz",
         variant: "destructive"
       });
     }
   });
 
   const updateQuizMutation = useMutation({
-    mutationFn: (quiz: Quiz) => {
-      return api.quiz.update(quiz.id, quiz);
+    mutationFn: async (quiz: Quiz) => {
+      try {
+        return await api.quiz.update(quiz.id, quiz);
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          await refreshToken();
+          return api.quiz.update(quiz.id, quiz);
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
@@ -131,10 +126,10 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         description: "Quiz updated successfully"
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update quiz",
+        description: error instanceof Error ? error.message : "Failed to update quiz",
         variant: "destructive"
       });
     }
@@ -142,16 +137,27 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
 
   const deleteQuizMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.quiz.delete(id);
+      try {
+        await api.quiz.delete(id);
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          await refreshToken();
+          await api.quiz.delete(id);
+        } else {
+          throw error;
+        }
+      }
     },
     onSuccess: (_, deletedId) => {
+      // Invalidate all quiz-related queries
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
       
-      queryClient.setQueryData(['quizzes', page, pageSize], (oldData: any) => {
+      // Optimistically update the quizzes list
+      queryClient.setQueryData<PaginatedResponse<Quiz>>(['quizzes', page, pageSize], (oldData) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
-          results: oldData.results.filter((quiz: Quiz) => quiz.id !== deletedId),
+          results: oldData.results.filter((quiz) => quiz.id !== deletedId),
           count: oldData.count - 1
         };
       });
@@ -171,8 +177,16 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   });
 
   const addQuestionMutation = useMutation({
-    mutationFn: ({ quizId, question }: { quizId: string; question: Omit<Question, 'id'> }) => {
-      return api.quiz.questions.create(quizId, question);
+    mutationFn: async ({ quizId, question }: { quizId: string; question: Omit<Question, 'id'> }) => {
+      try {
+        return await api.quiz.questions.create(quizId, question);
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          await refreshToken();
+          return api.quiz.questions.create(quizId, question);
+        }
+        throw error;
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', variables.quizId] });
@@ -181,18 +195,26 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         description: "Question added successfully"
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to add question",
+        description: error instanceof Error ? error.message : "Failed to add question",
         variant: "destructive"
       });
     }
   });
 
   const updateQuestionMutation = useMutation({
-    mutationFn: ({ quizId, question }: { quizId: string; question: Question }) => {
-      return api.quiz.questions.update(quizId, question.id, question);
+    mutationFn: async ({ quizId, question }: { quizId: string; question: Question }) => {
+      try {
+        return await api.quiz.questions.update(quizId, question.id, question);
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          await refreshToken();
+          return api.quiz.questions.update(quizId, question.id, question);
+        }
+        throw error;
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', variables.quizId] });
@@ -201,18 +223,27 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         description: "Question updated successfully"
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update question",
+        description: error instanceof Error ? error.message : "Failed to update question",
         variant: "destructive"
       });
     }
   });
 
   const deleteQuestionMutation = useMutation({
-    mutationFn: ({ quizId, questionId, questionType }: { quizId: string; questionId: string; questionType: string }) => {
-      return api.quiz.questions.delete(quizId, questionId, questionType);
+    mutationFn: async ({ quizId, questionId, questionType }: { quizId: string; questionId: string; questionType: string }) => {
+      try {
+        await api.quiz.questions.delete(quizId, questionId, questionType);
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          await refreshToken();
+          await api.quiz.questions.delete(quizId, questionId, questionType);
+        } else {
+          throw error;
+        }
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', variables.quizId] });
@@ -221,10 +252,10 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         description: "Question deleted successfully"
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete question",
+        description: error instanceof Error ? error.message : "Failed to delete question",
         variant: "destructive"
       });
     }
@@ -252,11 +283,10 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
 
   const deleteQuestion = async (quizId: string, questionId: string): Promise<void> => {
     try {
-      // Get the quiz from the cache or via an API call if needed
       const quiz = await queryClient.fetchQuery({
         queryKey: ['quizzes', quizId],
         queryFn: () => api.quiz.getOne(quizId),
-        staleTime: 0 // Force fresh data
+        staleTime: 0
       });
       
       if (!quiz) {
