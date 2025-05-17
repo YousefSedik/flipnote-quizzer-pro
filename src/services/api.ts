@@ -5,6 +5,26 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://flipnote-quizzer-backend.azurewebsites.net' 
   : 'http://localhost:8000';
 
+// Cache implementation
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getCachedData = (key: string) => {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key: string, data: any) => {
+  cache.set(key, { data, timestamp: Date.now() });
+};
+
+const clearCache = () => {
+  cache.clear();
+};
+
 const getAuthData = () => {
   const authData = localStorage.getItem('auth');
   if (authData) {
@@ -74,6 +94,19 @@ const refreshAccessToken = async (): Promise<string | null> => {
 };
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  // Don't cache POST, PUT, DELETE requests
+  const isCacheable = !['POST', 'PUT', 'DELETE'].includes(options.method || 'GET');
+  
+  if (isCacheable) {
+    const cachedData = getCachedData(url);
+    if (cachedData) {
+      return new Response(JSON.stringify(cachedData), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
   const headers = {
     ...options.headers,
     ...authHeaders(),
@@ -94,6 +127,11 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     }
   }
 
+  if (isCacheable && response.ok) {
+    const data = await response.clone().json();
+    setCachedData(url, data);
+  }
+
   return response;
 };
 
@@ -106,6 +144,7 @@ export interface PaginatedResponse<T> {
 
 export const api = {
   authHeaders,
+  clearCache, // Export clearCache for manual cache clearing if needed
   auth: {
     login: async (email: string, password: string): Promise<LoginResponse> => {
       const response = await fetch(`${API_URL}/auth/login/`, {
@@ -192,6 +231,12 @@ export const api = {
 
   quiz: {
     getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Quiz>> => {
+      const cacheKey = `${API_URL}/quizzes?page=${page}&page_size=${pageSize}`;
+      const cachedData = getCachedData(cacheKey);
+      if (cachedData) {
+        return cachedData;
+      }
+
       const response = await fetchWithAuth(`${API_URL}/quizzes?page=${page}&page_size=${pageSize}`);
 
       if (!response.ok) {
@@ -199,7 +244,7 @@ export const api = {
       }
 
       const data = await response.json();
-      return {
+      const result = {
         count: data.count,
         next: data.next,
         previous: data.previous,
@@ -209,10 +254,13 @@ export const api = {
           description: quiz.description,
           createdAt: quiz.created_at,
           is_public: quiz.is_public,
-          questions: [], // Questions are loaded separately
+          questions: [],
           ownerUsername: quiz.owner_username,
         })),
       };
+
+      setCachedData(cacheKey, result);
+      return result;
     },
 
     getOne: async (id: string) => {
