@@ -142,6 +142,15 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
+const clearQuizCaches = () => {
+  // Clear all quiz-related caches
+  for (const key of cache.keys()) {
+    if (key.includes('/quizzes')) {
+      cache.delete(key);
+    }
+  }
+};
+
 export const api = {
   authHeaders,
   clearCache, // Export clearCache for manual cache clearing if needed
@@ -357,6 +366,9 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to delete quiz');
       }
+      
+      // Clear quiz-related caches after successful deletion
+      clearQuizCaches();
       return response;
     },
 

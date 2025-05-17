@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Quiz, Question, PaginationParams, CreateQuizParams } from '../types/quiz';
 import { toast } from '@/hooks/use-toast';
@@ -142,20 +141,30 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   });
 
   const deleteQuizMutation = useMutation({
-    mutationFn: (id: string) => {
-      return api.quiz.delete(id);
+    mutationFn: async (id: string) => {
+      await api.quiz.delete(id);
     },
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      
+      queryClient.setQueryData(['quizzes', page, pageSize], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          results: oldData.results.filter((quiz: Quiz) => quiz.id !== deletedId),
+          count: oldData.count - 1
+        };
+      });
+
       toast({
         title: "Success",
         description: "Quiz deleted successfully"
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete quiz",
+        description: error instanceof Error ? error.message : "Failed to delete quiz",
         variant: "destructive"
       });
     }
