@@ -132,6 +132,16 @@ const clearQuizCaches = () => {
   }
 };
 
+// Add this helper function before the api object
+const shuffleArray = <T>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export const api = {
   clearCache,
   auth: {
@@ -198,6 +208,37 @@ export const api = {
       return result;
     },
 
+    search: async (query: string): Promise<PaginatedResponse<Quiz>> => {
+      const cacheKey = `/quiz/search?q=${query}`;
+      const cachedData = getCachedData(cacheKey);
+      if (cachedData) {
+        return cachedData;
+      }
+
+      const response = await axiosInstance.get('/quiz/search', {
+        params: { q: query }
+      });
+
+      const result = {
+        count: response.data.length,
+        next: null,
+        previous: null,
+        results: response.data.map((quiz: any) => ({
+          id: quiz.id,
+          title: quiz.title,
+          description: quiz.description,
+          createdAt: quiz.created_at,
+          is_public: quiz.is_public,
+          questions: [],
+          ownerUsername: quiz.owner_username,
+          views_count: quiz.views_count
+        })),
+      };
+
+      setCachedData(cacheKey, result);
+      return result;
+    },
+
     getOne: async (id: string) => {
       const response = await axiosInstance.get(`/quizzes/${id}`);
       const quiz = response.data;
@@ -226,13 +267,17 @@ export const api = {
 
       const quizData = questionsData.quiz || quiz;
 
+      // Combine and shuffle all questions
+      const allQuestions = [...mcqQuestions, ...writtenQuestions];
+      const shuffledQuestions = shuffleArray(allQuestions);
+
       return {
         id: quizData.id,
         title: quizData.title,
         description: quizData.description,
         createdAt: quizData.created_at,
         is_public: quizData.is_public,
-        questions: [...mcqQuestions, ...writtenQuestions],
+        questions: shuffledQuestions,
         ownerUsername: quizData.owner_username,
       };
     },
@@ -398,13 +443,17 @@ export const api = {
 
         const quizData = questionsData.quiz || quiz;
 
+        // Combine and shuffle all questions
+        const allQuestions = [...mcqQuestions, ...writtenQuestions];
+        const shuffledQuestions = shuffleArray(allQuestions);
+
         return {
           id: quizData.id,
           title: quizData.title,
           description: quizData.description,
           createdAt: quizData.created_at,
           is_public: quizData.is_public,
-          questions: [...mcqQuestions, ...writtenQuestions],
+          questions: shuffledQuestions,
           ownerUsername: quizData.owner_username,
         };
       }

@@ -1,7 +1,5 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 
 interface SearchSectionProps {
@@ -11,27 +9,26 @@ interface SearchSectionProps {
 const SearchSection: React.FC<SearchSectionProps> = ({ onSearch }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch(searchQuery);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        onSearch(searchQuery);
+      }
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, onSearch]);
 
   return (
-    <div className="w-full mx-auto mb-8">
-      <h2 className="text-2xl font-bold mb-4">Search Quizzes</h2>
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <Input
-          type="text"
-          placeholder="Search by quiz title or description..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1"
-        />
-        <Button type="submit">
-          <Search className="h-4 w-4 mr-2" />
-          Search
-        </Button>
-      </form>
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+      <Input
+        type="text"
+        placeholder="Search quizzes..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="pl-9"
+      />
     </div>
   );
 };
