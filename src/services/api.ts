@@ -353,66 +353,35 @@ export const api = {
     },
 
     public: {
-      getAll: async (page = 1, pageSize = 6): Promise<PaginatedResponse<Quiz>> => {
-        try {
-          const response = await axiosInstance.get('/quizzes/public', {
-            params: { page, page_size: pageSize }
-          });
-
-          return {
-            count: response.data.count,
-            next: response.data.next,
-            previous: response.data.previous,
-            results: response.data.results.map((quiz: any) => ({
-              id: quiz.id,
-              title: quiz.title,
-              description: quiz.description,
-              createdAt: quiz.created_at,
-              is_public: quiz.is_public,
-              questions: [],
-              ownerUsername: quiz.owner_username,
-            })),
-          };
-        } catch (error) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.warn('Using mock data for public quizzes (API unavailable)');
-            return {
-              count: 3,
-              next: null,
-              previous: null,
-              results: [
-                {
-                  id: 'mock-1',
-                  title: 'Sample Quiz 1',
-                  description: 'This is a sample quiz for testing',
-                  createdAt: new Date().toISOString(),
-                  is_public: true,
-                  questions: [],
-                  ownerUsername: 'testuser',
-                },
-                {
-                  id: 'mock-2',
-                  title: 'Sample Quiz 2',
-                  description: 'Another sample quiz',
-                  createdAt: new Date().toISOString(),
-                  is_public: true,
-                  questions: [],
-                  ownerUsername: 'testuser',
-                },
-                {
-                  id: 'mock-3',
-                  title: 'Sample Quiz 3',
-                  description: 'A third sample quiz',
-                  createdAt: new Date().toISOString(),
-                  is_public: true,
-                  questions: [],
-                  ownerUsername: 'testuser',
-                }
-              ],
-            };
-          }
-          throw error;
+      getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Quiz>> => {
+        const cacheKey = `/quizzes/public?page=${page}&page_size=${pageSize}`;
+        const cachedData = getCachedData(cacheKey);
+        if (cachedData) {
+          return cachedData;
         }
+
+        const response = await axiosInstance.get('/quizzes/public', {
+          params: { page, page_size: pageSize }
+        });
+
+        const result = {
+          count: response.data.count,
+          next: response.data.next,
+          previous: response.data.previous,
+          results: response.data.results.map((quiz: any) => ({
+            id: quiz.id,
+            title: quiz.title,
+            description: quiz.description,
+            createdAt: quiz.created_at,
+            is_public: quiz.is_public,
+            questions: [],
+            ownerUsername: quiz.owner_username,
+            views_count: quiz.views_count
+          })),
+        };
+
+        setCachedData(cacheKey, result);
+        return result;
       },
 
       getOne: async (id: string) => {
@@ -460,65 +429,30 @@ export const api = {
     },
 
     getHistory: async (): Promise<PaginatedResponse<Quiz>> => {
-      try {
-        const response = await axiosInstance.get('/quizzes/history');
-        return {
-          count: response.data.length,
-          next: null,
-          previous: null,
-          results: response.data.map((quiz: any) => ({
-            id: quiz.id,
-            title: quiz.title,
-            description: quiz.description,
-            createdAt: quiz.created_at,
-            is_public: quiz.is_public,
-            questions: [],
-            ownerUsername: quiz.owner_username,
-          })),
-        };
-      } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('Using mock data for quiz history (API unavailable)');
-          return {
-            count: 3,
-            next: null,
-            previous: null,
-            results: [
-              {
-                id: 'mock-history-1',
-                title: 'JavaScript Fundamentals',
-                description: 'Test your JavaScript knowledge',
-                createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-                is_public: true,
-                questions: [],
-                ownerUsername: 'testuser',
-                last_accessed: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-              },
-              {
-                id: 'mock-history-2',
-                title: 'React Hooks Quiz',
-                description: 'Learn about React hooks',
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-                is_public: false,
-                questions: [],
-                ownerUsername: 'testuser',
-                last_accessed: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-              },
-              {
-                id: 'mock-history-3',
-                title: 'TypeScript Basics',
-                description: 'Master TypeScript fundamentals',
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-                is_public: true,
-                questions: [],
-                ownerUsername: 'testuser',
-                last_accessed: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-              }
-            ],
-          };
+      // Clear any cached history data
+      for (const key of cache.keys()) {
+        if (key.includes('/quizzes/history')) {
+          cache.delete(key);
         }
-        throw error;
       }
+
+      const response = await axiosInstance.get('/quizzes/history');
+      return {
+        count: response.data.length,
+        next: null,
+        previous: null,
+        results: response.data.map((quiz: any) => ({
+          id: quiz.id,
+          title: quiz.title,
+          description: quiz.description,
+          createdAt: quiz.created_at,
+          is_public: quiz.is_public,
+          questions: [],
+          ownerUsername: quiz.owner_username,
+          last_accessed: quiz.last_accessed,
+          views_count: quiz.views_count
+        })),
+      };
     }
   }
 };
