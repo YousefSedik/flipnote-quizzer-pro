@@ -344,10 +344,18 @@ export const api = {
       formData.append('file', file);
       formData.append('quizId', quizId);
       
-      const response = await axiosInstance.post('/extract-questions', formData, {
+      const response = await axiosInstance.post('/quizzes/extract-questions', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+      });
+      return response.data;
+    },
+
+    extractQuestionsFromText: async (text: string, quizId: string) => {
+      const response = await axiosInstance.post('/quizzes/extract-questions/text', {
+        text,
+        quizId,
       });
       return response.data;
     },

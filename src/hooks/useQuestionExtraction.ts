@@ -1,20 +1,18 @@
-
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Question } from "@/types/quiz";
-import { createExtractQuestionsUrl } from "@/utils/apiHelpers";
 import { api } from "@/services/api";
 
 interface ExtractQuestionResponse {
-  mcq?: {
+  mcq?: Array<{
     text: string;
     options: string[];
     answer: string;
-  }[];
-  written?: {
+  }>;
+  written?: Array<{
     text: string;
     answer: string;
-  }[];
+  }>;
 }
 
 export const useQuestionExtraction = (quizId: string | undefined) => {
@@ -55,67 +53,22 @@ export const useQuestionExtraction = (quizId: string | undefined) => {
       formData.append("quizId", quizId);
       formData.append("type", type);
 
-      if (type === "pdf") {
-        const apiUrl = createExtractQuestionsUrl();
+      const response = await api.quiz.extractQuestions(file, quizId);
+      const processedQuestions = processExtractedQuestions(response);
 
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          body: formData,
-          headers: {
-            ...api.authHeaders(),
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to extract questions: " + response.status);
-        }
-
-        const extractedData: ExtractQuestionResponse = await response.json();
-        const processedQuestions = processExtractedQuestions(extractedData);
-
-        if (processedQuestions.length > 0) {
-          setGeneratedQuestions(processedQuestions);
-          setIsReviewingQuestions(true);
-          setCurrentReviewQuestion(0);
-
-          toast({
-            title: "Success",
-            description: processedQuestions.length + " questions extracted. Please review them before adding.",
-          });
-        } else {
-          toast({
-            title: "Warning",
-            description: "No questions could be extracted from the PDF.",
-          });
-        }
-      } else {
-        const mockQuestions = [
-          {
-            id: "temp-" + Date.now() + "-1",
-            text: "Who is the main character in this book?",
-            type: "written" as const,
-            answer: "Character name extracted from book",
-          },
-          {
-            id: "temp-" + Date.now() + "-2",
-            text: "What is the setting of this book?",
-            type: "mcq" as const,
-            answer: "Setting B",
-            options: [
-              { id: "1", text: "Setting A", isCorrect: false },
-              { id: "2", text: "Setting B", isCorrect: true },
-              { id: "3", text: "Setting C", isCorrect: false },
-            ],
-          },
-        ];
-
-        setGeneratedQuestions(mockQuestions);
+      if (processedQuestions.length > 0) {
+        setGeneratedQuestions(processedQuestions);
         setIsReviewingQuestions(true);
         setCurrentReviewQuestion(0);
 
         toast({
           title: "Success",
-          description: mockQuestions.length + " questions generated. Please review them before adding.",
+          description: processedQuestions.length + " questions extracted. Please review them before adding.",
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: "No questions could be extracted from the file.",
         });
       }
     } catch (error) {
@@ -148,27 +101,8 @@ export const useQuestionExtraction = (quizId: string | undefined) => {
     try {
       setIsUploading(true);
 
-      const apiUrl = createExtractQuestionsUrl();
-
-      const formData = new FormData();
-      formData.append("text", questionText);
-      formData.append("quizId", quizId);
-      formData.append("type", "text");
-
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        body: formData,
-        headers: {
-          ...api.authHeaders(),
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to extract questions: " + response.status);
-      }
-
-      const extractedData: ExtractQuestionResponse = await response.json();
-      const processedQuestions = processExtractedQuestions(extractedData);
+      const response = await api.quiz.extractQuestionsFromText(questionText, quizId);
+      const processedQuestions = processExtractedQuestions(response);
 
       if (processedQuestions.length > 0) {
         setGeneratedQuestions(processedQuestions);
