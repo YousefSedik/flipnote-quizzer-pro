@@ -344,20 +344,34 @@ export const api = {
       formData.append('file', file);
       formData.append('quizId', quizId);
       
-      const response = await axiosInstance.post('/quizzes/extract-questions', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
+      try {
+        const response = await axiosInstance.post('/extract-questions', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        return response.data;
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.data?.error) {
+          throw new Error(error.response.data.error);
+        }
+        throw error;
+      }
     },
 
     extractQuestionsFromText: async (text: string, quizId: string) => {
-      const response = await axiosInstance.post('/quizzes/extract-questions/text', {
-        text,
-        quizId,
-      });
-      return response.data;
+      try {
+        const response = await axiosInstance.post('/extract-questions', {
+          text,
+          quizId,
+        });
+        return response.data;
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.data?.error) {
+          throw new Error(error.response.data.error);
+        }
+        throw error;
+      }
     },
 
     public: {

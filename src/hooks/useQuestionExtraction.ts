@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Question } from "@/types/quiz";
 import { api } from "@/services/api";
+import { AxiosError } from "axios";
 
 interface ExtractQuestionResponse {
   mcq?: Array<{
@@ -73,10 +74,15 @@ export const useQuestionExtraction = (quizId: string | undefined) => {
       }
     } catch (error) {
       console.error("Error processing file:", error);
+      const errorMessage = error instanceof AxiosError && error.response?.data?.error
+        ? error.response.data.error
+        : error instanceof Error 
+          ? error.message 
+          : "Failed to process file. Please try again.";
+      
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to process file",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -121,10 +127,15 @@ export const useQuestionExtraction = (quizId: string | undefined) => {
       }
     } catch (error) {
       console.error("Error processing text:", error);
+      const errorMessage = error instanceof AxiosError && error.response?.data?.error
+        ? error.response.data.error
+        : error instanceof Error 
+          ? error.message 
+          : "Failed to process text. Please try again.";
+      
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to process text",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
