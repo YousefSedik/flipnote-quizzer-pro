@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +19,8 @@ interface QuestionReviewDialogProps {
   onSkipQuestion: () => void;
 }
 
+import { useEffect, useState } from "react";
+
 const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
   isOpen,
   onOpenChange,
@@ -37,7 +38,8 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
   // Reset editedQuestion when currentQuestion changes
   useEffect(() => {
     if (currentQuestion) {
-      setEditedQuestion({ ...currentQuestion });
+      // Force a completely new state object when the question changes
+      setEditedQuestion(JSON.parse(JSON.stringify(currentQuestion)));
     }
   }, [currentQuestionIndex, currentQuestion]);
 
@@ -62,6 +64,7 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
       });
       return;
     }
+    // Save the most recent version of editedQuestion
     onSaveQuestion(editedQuestion);
   };
 
@@ -69,11 +72,14 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
     setEditedQuestion(question);
   };
 
+  // This function will be used to handle the form submission
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSave();
+  };
+
   return (
-    <Dialog 
-      open={isOpen} 
-      onOpenChange={(open) => !open && onOpenChange(open)}
-    >
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onOpenChange(open)}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Review Generated Questions</DialogTitle>
@@ -85,26 +91,31 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
           </p>
 
           {editedQuestion && (
-            <QuestionForm
-              quizId={quizId}
-              question={editedQuestion}
-              onComplete={handleQuestionChange}
-              isReviewMode={true}
-            />
-          )}
+            <form onSubmit={handleFormSubmit}>
+              <QuestionForm
+                quizId={quizId}
+                question={editedQuestion}
+                onComplete={handleQuestionChange}
+                isReviewMode={true}
+              />
 
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={onSkipQuestion}>
-              Skip
-            </Button>
-            <Button onClick={handleSave}>
-              {isLastQuestion ? "Save & Finish" : "Save & Next"}
-            </Button>
-          </div>
+              <div className="flex justify-between mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onSkipQuestion}
+                >
+                  Skip
+                </Button>
+                <Button type="submit">
+                  {isLastQuestion ? "Save & Finish" : "Save & Next"}
+                </Button>
+              </div>
+            </form>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
 export default QuestionReviewDialog;
