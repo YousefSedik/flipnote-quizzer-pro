@@ -150,31 +150,35 @@ export const useQuestionExtraction = (quizId: string | undefined) => {
     // Process MCQ questions
     if (data.mcq && Array.isArray(data.mcq)) {
       data.mcq.forEach((q, index) => {
-        const options = q.options.map((opt, optIndex) => ({
-          id: optIndex.toString(),
-          text: opt,
-          isCorrect: opt === q.answer,
-        }));
-        
-        questions.push({
-          id: `temp-mcq-${Date.now()}-${index}`,
-          text: q.text,
-          type: "mcq",
-          answer: q.answer,
-          options,
-        });
+        if (q.text && q.options && q.answer) {
+          const options = q.options.map((opt, optIndex) => ({
+            id: optIndex.toString(),
+            text: opt,
+            isCorrect: opt === q.answer,
+          }));
+          
+          questions.push({
+            id: `temp-mcq-${Date.now()}-${index}`,
+            text: q.text,
+            type: "mcq",
+            answer: q.answer,
+            options,
+          });
+        }
       });
     }
     
     // Process written questions
     if (data.written && Array.isArray(data.written)) {
       data.written.forEach((q, index) => {
-        questions.push({
-          id: `temp-written-${Date.now()}-${index}`,
-          text: q.text,
-          type: "written",
-          answer: q.answer,
-        });
+        if (q.text && q.answer) {
+          questions.push({
+            id: `temp-written-${Date.now()}-${index}`,
+            text: q.text,
+            type: "written",
+            answer: q.answer,
+          });
+        }
       });
     }
     

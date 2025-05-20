@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,6 +32,14 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
   const totalQuestions = generatedQuestions.length;
   const currentQuestion = generatedQuestions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
+  const [editedQuestion, setEditedQuestion] = useState<Question | null>(null);
+
+  // Reset editedQuestion when currentQuestion changes
+  useEffect(() => {
+    if (currentQuestion) {
+      setEditedQuestion({ ...currentQuestion });
+    }
+  }, [currentQuestionIndex, currentQuestion]);
 
   if (!currentQuestion) {
     // If there's no current question, close the dialog
@@ -47,8 +54,19 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
   }
 
   const handleSave = () => {
-    // Save the current question
-    onSaveQuestion(currentQuestion);
+    if (!editedQuestion) {
+      toast({
+        title: "Error",
+        description: "No question to save",
+        variant: "destructive",
+      });
+      return;
+    }
+    onSaveQuestion(editedQuestion);
+  };
+
+  const handleQuestionChange = (question: Question) => {
+    setEditedQuestion(question);
   };
 
   return (
@@ -66,18 +84,21 @@ const QuestionReviewDialog: React.FC<QuestionReviewDialogProps> = ({
             Question {currentQuestionIndex + 1} of {totalQuestions}
           </p>
 
-          <QuestionForm
-            quizId={quizId}
-            question={currentQuestion}
-            onComplete={handleSave}
-          />
+          {editedQuestion && (
+            <QuestionForm
+              quizId={quizId}
+              question={editedQuestion}
+              onComplete={handleQuestionChange}
+              isReviewMode={true}
+            />
+          )}
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={onSkipQuestion}>
               Skip
             </Button>
             <Button onClick={handleSave}>
-              Save & {isLastQuestion ? "Finish" : "Next"}
+              {isLastQuestion ? "Save & Finish" : "Save & Next"}
             </Button>
           </div>
         </div>

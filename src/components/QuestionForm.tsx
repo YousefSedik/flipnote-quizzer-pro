@@ -14,10 +14,16 @@ import { toast } from '@/hooks/use-toast';
 interface QuestionFormProps {
   quizId: string;
   question?: Question;
-  onComplete: () => void;
+  onComplete: (question: Question) => void;
+  isReviewMode?: boolean;
 }
 
-const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplete }) => {
+const QuestionForm: React.FC<QuestionFormProps> = ({ 
+  quizId, 
+  question, 
+  onComplete,
+  isReviewMode = false 
+}) => {
   const [questionText, setQuestionText] = useState(question?.text || '');
   const [questionType, setQuestionType] = useState<QuestionType>(question?.type || 'written');
   const [answer, setAnswer] = useState(question?.answer || '');
@@ -72,55 +78,34 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
         });
         return;
       }
-    } else if (!answer.trim()) {
-      toast({
-        title: "Error",
-        description: "Please provide an answer",
-        variant: "destructive"
-      });
-      return;
-    }
 
-    // Format data according to the requested format
-    if (questionType === 'mcq') {
       const correctOption = options.find(o => o.isCorrect);
       const correctAnswer = correctOption ? correctOption.text : '';
       
-      if (question) {
-        updateQuestion(quizId, {
-          id: question.id,
-          text: questionText,
-          type: 'mcq',
-          answer: correctAnswer,
-          options: options
-        });
-      } else {
-        addQuestion(quizId, {
-          text: questionText,
-          type: 'mcq',
-          answer: correctAnswer,
-          options: options
-        });
-      }
+      onComplete({
+        id: question?.id || `temp-mcq-${Date.now()}`,
+        text: questionText,
+        type: 'mcq',
+        answer: correctAnswer,
+        options: options
+      });
     } else {
-      // Written question
-      if (question) {
-        updateQuestion(quizId, {
-          id: question.id,
-          text: questionText,
-          type: 'written',
-          answer: answer
+      if (!answer.trim()) {
+        toast({
+          title: "Error",
+          description: "Please provide an answer",
+          variant: "destructive"
         });
-      } else {
-        addQuestion(quizId, {
-          text: questionText,
-          type: 'written',
-          answer: answer
-        });
+        return;
       }
-    }
 
-    onComplete();
+      onComplete({
+        id: question?.id || `temp-written-${Date.now()}`,
+        text: questionText,
+        type: 'written',
+        answer: answer
+      });
+    }
   };
 
   const addOption = () => {
@@ -166,23 +151,25 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
         />
       </div>
       
-      <div className="space-y-2">
-        <label className="block text-sm font-medium mb-1">Question Type</label>
-        <RadioGroup 
-          value={questionType} 
-          onValueChange={(value) => setQuestionType(value as QuestionType)}
-          className="flex flex-col md:flex-row gap-4"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="written" id="written" />
-            <Label htmlFor="written">Written Answer</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="mcq" id="mcq" />
-            <Label htmlFor="mcq">Multiple Choice</Label>
-          </div>
-        </RadioGroup>
-      </div>
+      {!isReviewMode && (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium mb-1">Question Type</label>
+          <RadioGroup 
+            value={questionType} 
+            onValueChange={(value) => setQuestionType(value as QuestionType)}
+            className="flex flex-col md:flex-row gap-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="written" id="written" />
+              <Label htmlFor="written">Written Answer</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="mcq" id="mcq" />
+              <Label htmlFor="mcq">Multiple Choice</Label>
+            </div>
+          </RadioGroup>
+        </div>
+      )}
 
       {questionType === 'written' ? (
         <div>
@@ -242,14 +229,16 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onComplet
         </div>
       )}
 
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onComplete}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          {question ? 'Update Question' : 'Add Question'}
-        </Button>
-      </div>
+      {!isReviewMode && (
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={onComplete}>
+            Cancel
+          </Button>
+          <Button type="submit">
+            {question ? 'Update Question' : 'Add Question'}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

@@ -54,8 +54,48 @@ const EditQuizPage: React.FC = () => {
     handleTextSubmit,
   } = useQuestionExtraction(id);
 
-  const handleQuestionFormComplete = () => {
-    setIsAddingQuestion(false);
+  const handleQuestionFormComplete = async (question: Question) => {
+    if (!id) return;
+
+    try {
+      if (question.type === "mcq" && question.options) {
+        const correctOption = question.options.find((o) => o.isCorrect);
+        const correctAnswer = correctOption ? correctOption.text : "";
+
+        await api.quiz.questions.create(id, {
+          text: question.text,
+          type: "mcq",
+          answer: correctAnswer,
+          options: question.options,
+        });
+
+        toast({
+          title: "Success",
+          description: "Question added to quiz",
+        });
+      } else {
+        await api.quiz.questions.create(id, {
+          text: question.text,
+          type: "written",
+          answer: question.answer,
+        });
+
+        toast({
+          title: "Success",
+          description: "Question added to quiz",
+        });
+      }
+
+      await refetch();
+      setIsAddingQuestion(false);
+    } catch (error) {
+      console.error("Error saving question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add question",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSaveGeneratedQuestion = async (question: Question) => {
